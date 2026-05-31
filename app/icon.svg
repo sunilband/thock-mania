@@ -1,32 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <title>Keythm</title>
+  <title>Thock Mania</title>
   <style>
+    .bg { fill: #ffffff; }
     .sh { fill: #000; opacity: 0.08; }
-    .plate { fill: #c0c0c4; }
-    .accent { fill: #d47040; }
-    .dark { fill: #737373; }
-    .light { fill: #ededed; }
-    .hi { fill: #fff; }
+    .skirt { fill: #737373; }
+    .accent { fill: #2b7f9c; }
+    .hi { fill: #fff; opacity: 0.3; }
+    .wave { stroke: #2b7f9c; stroke-width: 2.1; stroke-linecap: round; fill: none; }
     @media (prefers-color-scheme: dark) {
+      .bg { fill: #13141a; }
       .sh { opacity: 0.3; }
-      .plate { fill: #111114; }
-      .accent { fill: #e8965c; }
-      .dark { fill: #3a3a3a; }
-      .light { fill: #484850; }
+      .skirt { fill: #3a3a3a; }
+      .accent { fill: #58a4be; }
+      .wave { stroke: #58a4be; }
     }
   </style>
-  <!-- Outer shadow -->
-  <rect class="sh" x="1" y="3" width="30" height="28" rx="5"/>
-  <!-- Housing plate -->
-  <rect class="plate" x="1" y="1" width="30" height="28" rx="5"/>
-  <!-- Keycap faces: accent / light / light / dark -->
-  <rect class="accent" x="3" y="3" width="12" height="10.5" rx="2.5"/>
-  <rect class="light" x="17" y="3" width="12" height="10.5" rx="2.5"/>
-  <rect class="light" x="3" y="15.5" width="12" height="10.5" rx="2.5"/>
-  <rect class="dark" x="17" y="15.5" width="12" height="10.5" rx="2.5"/>
-  <!-- Specular highlights -->
-  <rect class="hi" x="4.5" y="3.5" width="9" height="3" rx="1.5" opacity="0.28"/>
-  <rect class="hi" x="18.5" y="3.5" width="9" height="3" rx="1.5" opacity="0.2"/>
-  <rect class="hi" x="4.5" y="16" width="9" height="3" rx="1.5" opacity="0.2"/>
-  <rect class="hi" x="18.5" y="16" width="9" height="3" rx="1.5" opacity="0.12"/>
+  <!-- Rounded background plate -->
+  <rect class="bg" width="32" height="32" rx="7"/>
+  <!-- Keycap shadow -->
+  <rect class="sh" x="3" y="11" width="18" height="19" rx="4.5"/>
+  <!-- Keycap skirt -->
+  <rect class="skirt" x="3" y="9" width="18" height="19" rx="4.5"/>
+  <!-- Keycap top face -->
+  <rect class="accent" x="5.5" y="6.5" width="13" height="13" rx="3"/>
+  <!-- Specular highlight -->
+  <rect class="hi" x="7" y="8" width="10" height="2.5" rx="1.25"/>
+  <!-- Sound waves (the "thock") -->
+  <path class="wave" d="M22.5 11.5 Q26 16 22.5 20.5"/>
+  <path class="wave" d="M25.5 8.5 Q31 16 25.5 23.5" stroke-opacity="0.55"/>
 </svg>

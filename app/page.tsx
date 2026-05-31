@@ -78,16 +78,16 @@ export default function Page() {
             Built by{" "}
             <a
               className="text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
-              href="https://aayushbharti.in"
+              href="https://www.sunilband.com"
               rel="noopener noreferrer"
               target="_blank"
             >
-              Aayush Bharti
+              Sunil Band
             </a>
             . The source code is available on{" "}
             <a
               className="text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
-              href="https://github.com/aayushbharti/keythm"
+              href="https://github.com/sunilband/thock-mania"
               rel="noopener noreferrer"
               target="_blank"
             >

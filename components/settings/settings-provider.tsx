@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import type { KeyboardThemeName } from "@/components/ui/keyboard";
-import { syncKeythmFavicon } from "@/lib/favicon-client";
+import { syncThockManiaFavicon } from "@/lib/favicon-client";
 import { FONT_OPTIONS, type TypingFont } from "@/lib/font-options";
 import { THEME_OPTIONS } from "@/lib/theme-options";
 
@@ -19,14 +19,18 @@ export {
 } from "@/lib/font-options";
 export { THEME_OPTIONS } from "@/lib/theme-options";
 
+export type CaretStyle = "line" | "block" | "underline";
+
 interface SettingsContextType {
   accent: KeyboardThemeName;
+  caretStyle: CaretStyle;
   faahMode: boolean;
   font: TypingFont;
   fontCssFamily: string;
   ghostMode: boolean;
   liveStats: boolean;
   setAccent: (c: KeyboardThemeName) => void;
+  setCaretStyle: (s: CaretStyle) => void;
   setFaahMode: (v: boolean) => void;
   setFont: (f: TypingFont) => void;
   setGhostMode: (v: boolean) => void;
@@ -55,7 +59,7 @@ function loadGoogleFont(family: string) {
 
 function applyAccentToDom(accent: KeyboardThemeName) {
   document.documentElement.setAttribute("data-accent", accent);
-  queueMicrotask(() => syncKeythmFavicon());
+  queueMicrotask(() => syncThockManiaFavicon());
 }
 
 function applyFontToDom(fontId: TypingFont) {
@@ -78,6 +82,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [liveStats, setLiveStatsState] = useState(true);
   const [faahMode, setFaahModeState] = useState(false);
   const [ghostMode, setGhostModeState] = useState(false);
+  const [caretStyle, setCaretStyleState] = useState<CaretStyle>("line");
   // One-time hydration from localStorage on mount
   useEffect(() => {
     const validThemes = new Set<string>(THEME_OPTIONS.map((t) => t.id));
@@ -89,6 +94,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const savedRealtimeWpm = localStorage.getItem("tc-realtime-wpm");
     const savedFaahMode = localStorage.getItem("tc-faah-mode");
     const savedGhostMode = localStorage.getItem("tc-ghost-mode");
+    const savedCaretStyle = localStorage.getItem("tc-caret-style");
 
     const initialAccent =
       rawAccent && validThemes.has(rawAccent)
@@ -121,6 +127,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
     if (savedGhostMode !== null) {
       setGhostModeState(savedGhostMode === "true");
+    }
+    if (
+      savedCaretStyle === "line" ||
+      savedCaretStyle === "block" ||
+      savedCaretStyle === "underline"
+    ) {
+      setCaretStyleState(savedCaretStyle);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -169,6 +182,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("tc-ghost-mode", String(v));
   };
 
+  const setCaretStyle = (s: CaretStyle) => {
+    setCaretStyleState(s);
+    localStorage.setItem("tc-caret-style", s);
+  };
+
   const fontCssFamily =
     FONT_OPTIONS.find((f) => f.id === font)?.cssFamily ?? "var(--font-mono)";
 
@@ -192,6 +210,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setFaahMode,
         ghostMode,
         setGhostMode,
+        caretStyle,
+        setCaretStyle,
       }}
     >
       {children}

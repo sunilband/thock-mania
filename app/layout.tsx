@@ -5,7 +5,6 @@ import "./globals.css";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { VisitTracker } from "@/components/visit-tracker";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +21,8 @@ const fontMono = Geist_Mono({
 export const metadata: Metadata = {
   title: {
     default:
-      "Keythm — Free Typing Test with Mechanical Keyboard Sounds | WPM & Accuracy",
-    template: "%s | Keythm",
+      "Thock Mania — Free Typing Test with Mechanical Keyboard Sounds | WPM & Accuracy",
+    template: "%s | Thock Mania",
   },
   description: siteConfig.description,
   keywords: [
@@ -43,7 +42,7 @@ export const metadata: Metadata = {
     "keyboard sound test",
     "typing sound",
     "monkeytype alternative",
-    "Keythm",
+    "Thock Mania",
   ],
   authors: [{ name: siteConfig.creator, url: siteConfig.creatorUrl }],
   creator: siteConfig.creator,
@@ -57,7 +56,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteConfig.url,
     title:
-      "Keythm — Free Typing Test with Mechanical Keyboard Sounds | WPM & Accuracy",
+      "Thock Mania — Free Typing Test with Mechanical Keyboard Sounds | WPM & Accuracy",
     description: siteConfig.description,
     siteName: siteConfig.name,
     images: [
@@ -65,13 +64,13 @@ export const metadata: Metadata = {
         url: "/og.jpeg",
         width: 1500,
         height: 1016,
-        alt: "Keythm — typing test with mechanical keyboard sounds, on-screen keyboard, and real-time WPM tracking",
+        alt: "Thock Mania — typing test with mechanical keyboard sounds, on-screen keyboard, and real-time WPM tracking",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Keythm — Typing Test with Mechanical Keyboard Sounds",
+    title: "Thock Mania — Typing Test with Mechanical Keyboard Sounds",
     description:
       "A satisfying typing test with realistic mechanical keyboard sounds. Track your WPM and accuracy in real-time.",
     images: ["/og.jpeg"],
@@ -147,7 +146,6 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <SettingsProvider>
-            <VisitTracker />
             <AppChrome>{children}</AppChrome>
           </SettingsProvider>
         </ThemeProvider>

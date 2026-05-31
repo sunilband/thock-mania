@@ -1,24 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <title>Keythm</title>
+  <title>Thock Mania</title>
   <style>
     /* Light: matches :root --background / --primary (teal) */
     .bg { fill: #ffffff; }
-    .k {
-      stroke: #2b7f9c;
-      stroke-width: 2.35;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      fill: none;
-    }
+    .skirt { stroke: #2b7f9c; stroke-width: 2.1; stroke-linejoin: round; fill: none; opacity: 0.5; }
+    .cap { stroke: #2b7f9c; stroke-width: 2.35; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .wave { stroke: #2b7f9c; stroke-width: 2.1; stroke-linecap: round; fill: none; }
     /* Dark: matches .dark --background / brighter --primary for small-icon contrast */
     @media (prefers-color-scheme: dark) {
       .bg { fill: #13141a; }
-      .k { stroke: #58a4be; }
+      .skirt { stroke: #58a4be; }
+      .cap { stroke: #58a4be; }
+      .wave { stroke: #58a4be; }
     }
   </style>
   <rect class="bg" width="32" height="32" rx="7" />
-  <path
-    class="k"
-    d="M 10.25 7.75 L 10.25 24.25 M 10.25 15.25 L 22.75 7.75 M 10.25 15.25 L 22.75 24.25"
-  />
+  <!-- Keycap outline -->
+  <rect class="cap" x="5.5" y="7" width="13" height="14" rx="3" />
+  <!-- Sound waves -->
+  <path class="wave" d="M22 11 Q25.5 16 22 21" />
+  <path class="wave" d="M25 8.5 Q30 16 25 23.5" stroke-opacity="0.55" />
 </svg>

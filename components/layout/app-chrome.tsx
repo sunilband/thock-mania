@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ClockCounterClockwise,
   Command,
   GearSix,
   GithubLogo,
@@ -19,15 +20,17 @@ import {
   useRef,
   useState,
 } from "react";
-import { KeythmLogo } from "@/components/layout/keythm-logo";
+import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
-import { VisitCount } from "@/components/visit-count";
+import { HistoryPanel } from "@/components/typing/history/history-panel";
 import { cn } from "@/lib/utils";
 
 interface AppChromeContextValue {
   homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
+  historyOpen: boolean;
+  setHistoryOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTypingActive: (active: boolean) => void;
   settingsOpen: boolean;
@@ -46,6 +49,7 @@ export function useAppChrome() {
 
 export function AppChrome({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [typingActive, setTypingActive] = useState(false);
   const homeLogoHandlerRef = useRef<(() => void) | null>(null);
 
@@ -57,12 +61,16 @@ export function AppChrome({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ⌘K to toggle settings
+  // ⌘K to toggle settings, ⌘H to toggle history
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setSettingsOpen((prev) => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "h") {
+        e.preventDefault();
+        setHistoryOpen((prev) => !prev);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -73,11 +81,13 @@ export function AppChrome({ children }: { children: ReactNode }) {
     () => ({
       settingsOpen,
       setSettingsOpen,
+      historyOpen,
+      setHistoryOpen,
       typingActive,
       setTypingActive,
       homeLogoHandlerRef,
     }),
-    [settingsOpen, typingActive]
+    [settingsOpen, historyOpen, typingActive]
   );
 
   return (
@@ -88,13 +98,15 @@ export function AppChrome({ children }: { children: ReactNode }) {
         {children}
       </div>
       <SettingsPanel onOpenChange={setSettingsOpen} open={settingsOpen} />
+      <HistoryPanel onOpenChange={setHistoryOpen} open={historyOpen} />
     </AppChromeContext.Provider>
   );
 }
 
 function SiteHeader() {
   const router = useRouter();
-  const { setSettingsOpen, typingActive, homeLogoHandlerRef } = useAppChrome();
+  const { setSettingsOpen, setHistoryOpen, typingActive, homeLogoHandlerRef } =
+    useAppChrome();
   const { soundEnabled, setSoundEnabled } = useSettings();
 
   const dimHeader = typingActive;
@@ -147,17 +159,19 @@ function SiteHeader() {
       <div className="relative flex w-full max-w-5xl items-center justify-between">
         {/* Left — Logo */}
         <button
-          className="flex cursor-pointer items-end gap-1 font-semibold text-primary text-xl tracking-tight"
+          className="flex cursor-pointer items-center gap-1.5 font-semibold text-primary text-xl tracking-tight"
           onClick={handleLogoClick}
           type="button"
         >
-          keythm
-          <KeythmLogo className="mb-1" size={17} />
+          <ThockManiaLogo size={20} />
+          Thock Mania
         </button>
 
-        {/* Center — Visit counter (loads async, hidden until ready) */}
+        {/* Center — tagline */}
         <div className="pointer-events-none absolute inset-x-0 hidden justify-center md:flex">
-          <VisitCount />
+          <span className="text-muted-foreground/60 text-xs">
+            type. listen. repeat.
+          </span>
         </div>
 
         {/* Right — Audio, Settings, GitHub */}
@@ -191,6 +205,18 @@ function SiteHeader() {
             <span className="hidden sm:inline">Audio</span>
           </motion.button>
 
+          {/* History */}
+          <motion.button
+            aria-label="History"
+            className="flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
+            onClick={() => setHistoryOpen(true)}
+            type="button"
+            whileTap={{ scale: 0.97 }}
+          >
+            <ClockCounterClockwise size={15} weight="duotone" />
+            <span className="hidden sm:inline">History</span>
+          </motion.button>
+
           {/* Settings */}
           <motion.button
             aria-label="Settings"
@@ -210,7 +236,7 @@ function SiteHeader() {
           {/* GitHub — primary pill */}
           <motion.a
             className="flex items-center gap-2 rounded-full bg-foreground px-4 py-1.5 font-medium text-[13px] text-background"
-            href="https://github.com/aayushbharti/keythm"
+            href="https://github.com/sunilband/thock-mania"
             rel="noopener noreferrer"
             target="_blank"
             whileTap={{ scale: 0.96 }}

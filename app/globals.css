@@ -243,6 +243,22 @@
   --muted: color-mix(in oklch, var(--kb-dark) 40%, oklch(0.274 0.006 286));
 }
 
+/* carbon — light:#2A2D34 dark:#1B1D22 accent:#5BC8AF (teal!) */
+:root[data-accent="carbon"] {
+  --primary: oklch(0.6 0.1 175);
+  --ring: oklch(0.6 0.1 175);
+  --kb-dark: oklch(0.35 0.01 260);
+  --kb-light: oklch(0.45 0.01 260);
+  --muted: color-mix(in oklch, var(--kb-dark) 10%, oklch(0.967 0.001 286));
+}
+:root.dark[data-accent="carbon"] {
+  --primary: oklch(0.78 0.13 175);
+  --ring: oklch(0.78 0.13 175);
+  --kb-dark: oklch(0.22 0.008 260);
+  --kb-light: oklch(0.26 0.01 260);
+  --muted: color-mix(in oklch, var(--kb-dark) 45%, oklch(0.274 0.006 286));
+}
+
 /* ── Typing font ──────────────────────────────────────────────── */
 :root {
   --typing-font: var(--font-mono);

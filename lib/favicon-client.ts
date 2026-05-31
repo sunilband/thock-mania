@@ -1,30 +1,28 @@
 function buildFaviconHref(
   accent: string,
   kbDark: string,
-  kbLight: string,
+  _kbLight: string,
   plate: string
 ): string {
   const a = accent.replace(/"/g, "'");
   const d = kbDark.replace(/"/g, "'");
-  const l = kbLight.replace(/"/g, "'");
   const pl = plate.replace(/"/g, "'");
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">` +
-    // outer shadow
-    `<rect x="1" y="3" width="30" height="28" rx="5" fill="#000" fill-opacity="0.12"/>` +
-    // housing plate
-    `<rect x="1" y="1" width="30" height="28" rx="5" fill="${pl}"/>` +
-    // keycap faces: accent / light / light / dark
-    `<rect x="3" y="3" width="12" height="10.5" rx="2.5" fill="${a}"/>` +
-    `<rect x="17" y="3" width="12" height="10.5" rx="2.5" fill="${l}"/>` +
-    `<rect x="3" y="15.5" width="12" height="10.5" rx="2.5" fill="${l}"/>` +
-    `<rect x="17" y="15.5" width="12" height="10.5" rx="2.5" fill="${d}"/>` +
-    // specular highlights
-    `<rect x="4.5" y="3.5" width="9" height="3" rx="1.5" fill="#fff" fill-opacity="0.28"/>` +
-    `<rect x="18.5" y="3.5" width="9" height="3" rx="1.5" fill="#fff" fill-opacity="0.2"/>` +
-    `<rect x="4.5" y="16" width="9" height="3" rx="1.5" fill="#fff" fill-opacity="0.2"/>` +
-    `<rect x="18.5" y="16" width="9" height="3" rx="1.5" fill="#fff" fill-opacity="0.12"/>` +
+    // background plate
+    `<rect width="32" height="32" rx="7" fill="${pl}"/>` +
+    // keycap shadow
+    `<rect x="3" y="11" width="18" height="19" rx="4.5" fill="#000" fill-opacity="0.18"/>` +
+    // keycap skirt
+    `<rect x="3" y="9" width="18" height="19" rx="4.5" fill="${d}"/>` +
+    // keycap top face (accent)
+    `<rect x="5.5" y="6.5" width="13" height="13" rx="3" fill="${a}"/>` +
+    // specular highlight
+    `<rect x="7" y="8" width="10" height="2.5" rx="1.25" fill="#fff" fill-opacity="0.3"/>` +
+    // sound waves (the "thock")
+    `<path d="M22.5 11.5 Q26 16 22.5 20.5" stroke="${a}" stroke-width="2.1" stroke-linecap="round" fill="none"/>` +
+    `<path d="M25.5 8.5 Q31 16 25.5 23.5" stroke="${a}" stroke-width="2.1" stroke-linecap="round" stroke-opacity="0.55" fill="none"/>` +
     `</svg>`;
 
   return `data:image/svg+xml;base64,${globalThis.btoa(svg)}`;
@@ -72,25 +70,11 @@ function readThemeColors(): {
     accent,
     kbDark: kbDark ?? accent,
     kbLight: kbLight ?? background,
-    plate: darken(background),
+    plate: background,
   };
 }
 
-/** Darken an rgb/rgba color for the housing plate. */
-function darken(rgb: string): string {
-  const m = rgb.match(
-    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/
-  );
-  if (!m) {
-    return rgb;
-  }
-  const r = Math.max(0, Math.round(Number(m[1]) * 0.72));
-  const g = Math.max(0, Math.round(Number(m[2]) * 0.72));
-  const b = Math.max(0, Math.round(Number(m[3]) * 0.72));
-  return `rgb(${r},${g},${b})`;
-}
-
-export function syncKeythmFavicon() {
+export function syncThockManiaFavicon() {
   if (typeof document === "undefined") {
     return;
   }
@@ -119,7 +103,7 @@ export function syncKeythmFavicon() {
 
   if (!touched) {
     const link = document.createElement("link");
-    link.id = "keythm-favicon";
+    link.id = "thock-mania-favicon";
     link.rel = "shortcut icon";
     link.type = "image/svg+xml";
     link.href = href;

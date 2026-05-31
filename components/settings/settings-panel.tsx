@@ -3,6 +3,7 @@
 import { CaretRight, Command, X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import {
+  type CaretStyle,
   FONT_OPTIONS,
   THEME_OPTIONS,
   useSettings,
@@ -47,6 +48,8 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
     setFaahMode,
     ghostMode,
     setGhostMode,
+    caretStyle,
+    setCaretStyle,
   } = useSettings();
 
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -137,6 +140,9 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
 
             {/* ── Gameplay ── */}
             <Section title="Gameplay">
+              <Row label="Caret">
+                <CaretStyleToggle onChange={setCaretStyle} value={caretStyle} />
+              </Row>
               <Toggle
                 description="Show WPM and accuracy while typing"
                 enabled={liveStats}
@@ -326,6 +332,40 @@ function VolumeSlider({
       <span className="w-8 text-right font-medium text-[11px] text-muted-foreground tabular-nums">
         {Math.round(value * 100)}%
       </span>
+    </div>
+  );
+}
+
+const CARET_OPTIONS: { id: CaretStyle; label: string }[] = [
+  { id: "line", label: "Line" },
+  { id: "block", label: "Block" },
+  { id: "underline", label: "Under" },
+];
+
+function CaretStyleToggle({
+  value,
+  onChange,
+}: {
+  value: CaretStyle;
+  onChange: (s: CaretStyle) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-foreground/[0.04] p-0.5">
+      {CARET_OPTIONS.map((opt) => (
+        <button
+          className={cn(
+            "rounded-md px-2.5 py-1 text-[11px] transition-colors",
+            value === opt.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          key={opt.id}
+          onClick={() => onChange(opt.id)}
+          type="button"
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

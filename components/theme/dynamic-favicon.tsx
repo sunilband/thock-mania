@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { syncKeythmFavicon } from "@/lib/favicon-client";
+import { syncThockManiaFavicon } from "@/lib/favicon-client";
 
 export function DynamicFavicon() {
   const { resolvedTheme } = useTheme();
@@ -19,8 +19,8 @@ export function DynamicFavicon() {
     }
 
     const run = () => {
-      syncKeythmFavicon();
-      requestAnimationFrame(() => syncKeythmFavicon());
+      syncThockManiaFavicon();
+      requestAnimationFrame(() => syncThockManiaFavicon());
     };
 
     run();

@@ -146,6 +146,17 @@ export const KEYBOARD_THEMES: Record<
       dark: MINT_DARK_KEYS,
     }),
   },
+  carbon: {
+    variants: {
+      accent: { bg: "#5BC8AF", text: "rgba(0,0,0,0.7)" },
+      dark: { bg: "#1B1D22", text: "rgba(255,255,255,0.7)" },
+      light: { bg: "#2A2D34", text: "rgba(255,255,255,0.75)" },
+    },
+    keyVariantOverrides: buildKeyVariantOverrides({
+      accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.Space],
+      dark: [...MINT_DARK_KEYS, KEYCODE.Backquote, KEYCODE.Backslash],
+    }),
+  },
 };
 
 export function buildKeyVariantOverrides({
@@ -196,9 +207,9 @@ export function toRgba(color: string, alpha: number): string {
   const hex =
     value.length === 3
       ? value
-          .split("")
-          .map((char) => `${char}${char}`)
-          .join("")
+        .split("")
+        .map((char) => `${char}${char}`)
+        .join("")
       : value;
 
   if (hex.length !== 6) {

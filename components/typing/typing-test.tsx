@@ -20,7 +20,7 @@ interface TypingTestProps {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: orchestrator component
 export function TypingTest(props: TypingTestProps) {
-  const { liveStats, faahMode, ghostMode } = useSettings();
+  const { liveStats, faahMode, ghostMode, caretStyle } = useSettings();
   const faahAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const onWrongKey = useCallback(() => {
@@ -268,6 +268,7 @@ export function TypingTest(props: TypingTestProps) {
                 return (
                   // biome-ignore lint/suspicious/noArrayIndexKey: word+index combo ensures uniqueness for duplicate words
                   <WordItem
+                    caretStyle={caretStyle}
                     dimmed={dimmed}
                     displayInput={displayInput}
                     elemRef={isActive ? activeWordRef : undefined}

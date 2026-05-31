@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Confetti, type ConfettiRef } from "@/components/ui/confetti";
 import { saveIfPersonalBest } from "@/lib/personal-best";
+import { addTestToHistory } from "@/lib/test-history";
 import type { ResultStats } from "@/lib/types";
 import { isInvalidTestResult } from "@/lib/validate-result";
 import {
@@ -58,6 +59,23 @@ export function ResultsScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
+
+  // Log every valid run to local history exactly once when results mount.
+  useMemo(() => {
+    if (invalid) {
+      return;
+    }
+    addTestToHistory({
+      wpm,
+      raw,
+      accuracy,
+      consistency,
+      mode,
+      modeDetail,
+      date: new Date().toISOString(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!invalid && wpm >= 100) {

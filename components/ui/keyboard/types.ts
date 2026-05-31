@@ -10,7 +10,8 @@ export type KeyboardThemeName =
   | "royal"
   | "dolch"
   | "sand"
-  | "scarlet";
+  | "scarlet"
+  | "carbon";
 
 export interface KeyboardInteractionEvent {
   code: string;

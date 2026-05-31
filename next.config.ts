@@ -1,15 +1,12 @@
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
-import { env } from "./lib/env";
 
-const isProd = env.NODE_ENV === "production";
+const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
   turbopack: {},
   reactStrictMode: true,
   reactCompiler: isProd,
-
-  transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
 
   experimental: {
     inlineCss: isProd,
