@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowCounterClockwise, Cursor } from "@phosphor-icons/react";
+import { ArrowsCounterClockwiseIcon, CursorIcon } from "@phosphor-icons/react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "@/components/settings/settings-provider";
@@ -63,6 +63,9 @@ export function TypingTest(props: TypingTestProps) {
     wordsContainerRef,
     activeWordRef,
     handleKeyDown,
+    handleInputChange,
+    handleCompositionStart,
+    handleCompositionEnd,
     handleFocus,
     handleInputBlur,
     handleInputFocus,
@@ -215,19 +218,23 @@ export function TypingTest(props: TypingTestProps) {
           style={{ fontFamily: "var(--typing-font)" }}
         >
           <input
-            autoCapitalize="none"
+            aria-hidden="true"
+            autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
             autoFocus
             className="absolute opacity-0"
+            data-gramm="false"
+            inputMode="text"
             onBlur={handleInputBlur}
-            onChange={() => {
-              /* controlled input */
-            }}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onCompositionEnd={handleCompositionEnd}
+            onCompositionStart={handleCompositionStart}
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
             ref={inputRef}
             spellCheck={false}
+            tabIndex={-1}
             value={typed}
           />
 
@@ -296,7 +303,7 @@ export function TypingTest(props: TypingTestProps) {
                 transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center gap-2 text-muted-foreground text-xs backdrop-blur-sm">
-                  <Cursor
+                  <CursorIcon
                     className="text-muted-foreground/60"
                     size={14}
                     weight="duotone"
@@ -382,7 +389,7 @@ function RestartButton({
           transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
         }}
       >
-        <ArrowCounterClockwise size={18} />
+        <ArrowsCounterClockwiseIcon size={18} />
       </span>
     </motion.button>
   );

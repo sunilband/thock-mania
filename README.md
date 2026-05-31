@@ -70,13 +70,14 @@
 |------|----------------|
 | **Test modes** | Time (15s–120s), word count, quotes (length presets), zen |
 | **Mechanical key sounds** | Realistic per-key audio feedback via Web Audio; multiple keyboard themes |
-| **Virtual keyboard** | Interactive on-screen keyboard that highlights keys as you type (desktop) |
+| **Virtual keyboard** | Interactive on-screen keyboard that highlights keys as you type, with a header dropdown to switch form factors — 100% (full-size), 96%/1800, 80% TKL, 75%, 65%, 60%, and 40% |
+| **Mobile typing** | Tap to focus and type with the device's soft keyboard — input is captured reliably across iOS and Android (Gboard), including autocorrect and swipe |
 | **Results** | WPM, raw speed, accuracy, character breakdown, consistency, elapsed time, WPM-over-time chart |
 | **Local history** | Every completed test is logged on-device — review recent runs plus average and best WPM from the History panel (`⌘H`) |
 | **Keyboard themes** | 7 color schemes — Classic, Mint, Royal, Dolch, Sand, Scarlet, Carbon — each tints the entire UI |
 | **Typing fonts** | 9 fonts — Geist Mono, JetBrains Mono, Fira Code, IBM Plex Mono, Source Code Pro, Inter Tight, Space Grotesk, Nunito, Atkinson Hyperlegible |
 | **Caret styles** | Line, block, or underline caret |
-| **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, sound volume, live WPM, ghost mode |
+| **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, keyboard layout size, sound volume, live WPM, ghost mode |
 | **Haptics** | Optional vibration on supported hardware |
 
 Settings and history persist in `localStorage` — no account, no backend.
