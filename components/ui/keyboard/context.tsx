@@ -19,6 +19,7 @@ import type {
   KeyboardEventPhase,
   KeyboardEventSource,
   KeyboardInteractionEvent,
+  KeyboardSize,
   KeyboardThemeName,
 } from "./types";
 
@@ -33,6 +34,7 @@ interface KeyboardContextType {
   pressKey: (keyCode: string, source: KeyboardEventSource) => boolean;
   releaseAllKeys: (source?: KeyboardEventSource) => void;
   releaseKey: (keyCode: string, source: KeyboardEventSource) => void;
+  size: KeyboardSize;
   themeName: KeyboardThemeName;
   triggerPointerHaptic: () => void;
 }
@@ -68,6 +70,7 @@ export interface KeyboardProviderProps {
   layout: KeyboardLayout;
   onKeyEvent?: (event: KeyboardInteractionEvent) => void;
   physicalKeysEnabled?: boolean;
+  size: KeyboardSize;
   soundUrl: string;
   theme: KeyboardThemeName;
   volume?: number;
@@ -84,6 +87,7 @@ export function KeyboardProvider({
   forceActive = false,
   physicalKeysEnabled = true,
   layout,
+  size,
   volume = 0.5,
 }: KeyboardProviderProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -350,6 +354,7 @@ export function KeyboardProvider({
       value={{
         themeName: theme,
         layout,
+        size,
         pressedKeys,
         lastPressedKey,
         triggerPointerHaptic,

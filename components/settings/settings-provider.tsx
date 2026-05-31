@@ -7,9 +7,13 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { KeyboardThemeName } from "@/components/ui/keyboard";
+import type { KeyboardSize, KeyboardThemeName } from "@/components/ui/keyboard";
 import { syncThockManiaFavicon } from "@/lib/favicon-client";
 import { FONT_OPTIONS, type TypingFont } from "@/lib/font-options";
+import {
+  DEFAULT_KEYBOARD_SIZE,
+  KEYBOARD_SIZE_OPTIONS,
+} from "@/lib/keyboard-size-options";
 import { THEME_OPTIONS } from "@/lib/theme-options";
 
 export {
@@ -17,6 +21,7 @@ export {
   type FontOption,
   type TypingFont,
 } from "@/lib/font-options";
+export { KEYBOARD_SIZE_OPTIONS } from "@/lib/keyboard-size-options";
 export { THEME_OPTIONS } from "@/lib/theme-options";
 
 export type CaretStyle = "line" | "block" | "underline";
@@ -28,12 +33,14 @@ interface SettingsContextType {
   font: TypingFont;
   fontCssFamily: string;
   ghostMode: boolean;
+  keyboardSize: KeyboardSize;
   liveStats: boolean;
   setAccent: (c: KeyboardThemeName) => void;
   setCaretStyle: (s: CaretStyle) => void;
   setFaahMode: (v: boolean) => void;
   setFont: (f: TypingFont) => void;
   setGhostMode: (v: boolean) => void;
+  setKeyboardSize: (s: KeyboardSize) => void;
   setLiveStats: (v: boolean) => void;
   setShowKeyboard: (v: boolean) => void;
   setSoundEnabled: (v: boolean) => void;
@@ -77,6 +84,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [accent, setAccentState] = useState<KeyboardThemeName>("classic");
   const [font, setFontState] = useState<TypingFont>("geist-mono");
   const [showKeyboard, setShowKeyboardState] = useState(true);
+  const [keyboardSize, setKeyboardSizeState] = useState<KeyboardSize>(
+    DEFAULT_KEYBOARD_SIZE
+  );
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [soundVolume, setSoundVolumeState] = useState(0.8);
   const [liveStats, setLiveStatsState] = useState(true);
@@ -89,6 +99,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const rawAccent = localStorage.getItem("tc-accent");
     const savedFont = localStorage.getItem("tc-font") as TypingFont | null;
     const savedShowKeyboard = localStorage.getItem("tc-show-keyboard");
+    const savedKeyboardSize = localStorage.getItem("tc-keyboard-size");
     const savedSoundEnabled = localStorage.getItem("tc-sound-enabled");
     const savedSoundVolume = localStorage.getItem("tc-sound-volume");
     const savedRealtimeWpm = localStorage.getItem("tc-realtime-wpm");
@@ -109,6 +120,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
     if (savedShowKeyboard !== null) {
       setShowKeyboardState(savedShowKeyboard !== "false");
+    }
+    if (
+      savedKeyboardSize !== null &&
+      KEYBOARD_SIZE_OPTIONS.some((o) => o.id === savedKeyboardSize)
+    ) {
+      setKeyboardSizeState(savedKeyboardSize as KeyboardSize);
     }
     if (savedSoundEnabled !== null) {
       setSoundEnabledState(savedSoundEnabled !== "false");
@@ -157,6 +174,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("tc-show-keyboard", String(v));
   };
 
+  const setKeyboardSize = (s: KeyboardSize) => {
+    setKeyboardSizeState(s);
+    localStorage.setItem("tc-keyboard-size", s);
+  };
+
   const setSoundEnabled = (v: boolean) => {
     setSoundEnabledState(v);
     localStorage.setItem("tc-sound-enabled", String(v));
@@ -200,6 +222,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         fontCssFamily,
         showKeyboard,
         setShowKeyboard,
+        keyboardSize,
+        setKeyboardSize,
         soundEnabled,
         setSoundEnabled,
         soundVolume,

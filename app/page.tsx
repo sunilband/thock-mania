@@ -12,7 +12,8 @@ export default function Page() {
   const [isFinished, setIsFinished] = useState(false);
   const [typingFocused, setTypingFocused] = useState(true);
   const [restartKey, setRestartKey] = useState(0);
-  const { showKeyboard, soundEnabled, soundVolume, accent } = useSettings();
+  const { showKeyboard, soundEnabled, soundVolume, accent, keyboardSize } =
+    useSettings();
 
   useEffect(() => {
     homeLogoHandlerRef.current = () => {
@@ -70,6 +71,7 @@ export default function Page() {
               enableSound={soundEnabled}
               forceActive={soundEnabled && !showKeyboard}
               physicalKeysEnabled={typingFocused}
+              size={keyboardSize}
               theme={accent}
               volume={soundVolume}
             />

@@ -24,6 +24,7 @@ import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
+import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
 import { HistoryPanel } from "@/components/typing/history/history-panel";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +108,7 @@ function SiteHeader() {
   const router = useRouter();
   const { setSettingsOpen, setHistoryOpen, typingActive, homeLogoHandlerRef } =
     useAppChrome();
-  const { soundEnabled, setSoundEnabled } = useSettings();
+  const { soundEnabled, setSoundEnabled, showKeyboard } = useSettings();
 
   const dimHeader = typingActive;
 
@@ -167,15 +168,15 @@ function SiteHeader() {
           Thock Mania
         </button>
 
-        {/* Center — tagline */}
-        <div className="pointer-events-none absolute inset-x-0 hidden justify-center md:flex">
-          <span className="text-muted-foreground/60 text-xs">
-            type. listen. repeat.
-          </span>
-        </div>
-
         {/* Right — Audio, Settings, GitHub */}
         <div className="flex items-center gap-2">
+          {/* Keyboard layout size — only when the on-screen keyboard is shown */}
+          {showKeyboard && (
+            <div className="hidden lg:block">
+              <KeyboardSizeDropdown />
+            </div>
+          )}
+
           {/* Audio toggle */}
           <motion.button
             aria-label={soundEnabled ? "Mute audio" : "Unmute audio"}

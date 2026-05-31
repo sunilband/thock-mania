@@ -112,6 +112,9 @@ export function useTypingTest({
   const screenFadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetAnimRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finishTestRef = useRef<(() => void) | null>(null);
+  // Set when a physical keydown consumes a typing key, so the paired
+  // beforeinput event (which fires for the same key) can be skipped.
+  const usedKeyDownRef = useRef(false);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const mtCounts = useMemo(
@@ -135,10 +138,10 @@ export function useTypingTest({
   const wpm =
     started && startTime && !finished
       ? Math.round(
-          wpmNumerator /
-            5 /
-            Math.max((Date.now() - startTime) / 1000 / 60, 1 / 60)
-        )
+        wpmNumerator /
+        5 /
+        Math.max((Date.now() - startTime) / 1000 / 60, 1 / 60)
+      )
       : 0;
 
   // ── finishTest ───────────────────────────────────────────────────────────
@@ -413,6 +416,208 @@ export function useTypingTest({
     }
   }, [typed, wordIndex, wordInputs, words, onKeyHighlight]);
 
+  // Start the test (and the countdown timer for "time" mode). Safe to call on
+  // every keystroke — it no-ops once already started.
+  const ensureStarted = useCallback(() => {
+    if (started) {
+      return;
+    }
+    setStarted(true);
+    setStartTime(Date.now());
+    setShowControls(false);
+    onTypingActiveChange?.(true);
+
+    if (mode === "time") {
+      let elapsedTicks = 0;
+      timerRef.current = setInterval(() => {
+        elapsedTicks += 1;
+        elapsedSecondsRef.current = elapsedTicks;
+        const elapsedMin = elapsedTicks / 60;
+        const snapWpm =
+          elapsedMin > 0
+            ? Math.round(correctCharsRef.current / 5 / elapsedMin)
+            : 0;
+        const snapRaw =
+          elapsedMin > 0
+            ? Math.max(
+              Math.round(allTypedRef.current / 5 / elapsedMin),
+              snapWpm
+            )
+            : 0;
+        setWpmHistory((prev) => [
+          ...prev,
+          {
+            second: elapsedTicks,
+            wpm: snapWpm,
+            raw: snapRaw,
+            errors: errorsThisSecondRef.current,
+          },
+        ]);
+        errorsThisSecondRef.current = 0;
+        if (elapsedTicks >= timeOption) {
+          clearInterval(timerRef.current!);
+          timerRef.current = null;
+          finishTestRef.current?.();
+        } else {
+          setTimeLeft(timeOption - elapsedTicks);
+        }
+      }, 1000);
+    }
+  }, [started, mode, timeOption, onTypingActiveChange]);
+
+  // ── Core input processing (shared by physical keydown and beforeinput) ────
+  const processSpace = useCallback(() => {
+    const currentWord = words[wordIndex];
+    if (typed.length === 0) {
+      return;
+    }
+
+    allTypedRef.current += 1; // count the space keystroke so raw >= wpm
+
+    for (let i = 0; i < Math.min(typed.length, currentWord.length); i++) {
+      if (typed[i] !== currentWord[i]) {
+        errorsThisSecondRef.current++;
+      }
+    }
+    if (typed.length > currentWord.length) {
+      errorsThisSecondRef.current++;
+    }
+
+    const nextInputs = [...wordInputs, typed];
+    const nextIndex = wordIndex + 1;
+    recordWordSnapshot(nextInputs, "", nextIndex);
+
+    if (wordIndex + 1 >= words.length) {
+      setWordInputs(nextInputs);
+      finishTest();
+      return;
+    }
+    setWordInputs(nextInputs);
+    setWordIndex(nextIndex);
+    setTyped("");
+    onKeyHighlight?.(null);
+    requestAnimationFrame(() => {
+      if (!activeWordRef.current) {
+        return;
+      }
+      const word = activeWordRef.current;
+      const lineH = word.offsetHeight + 4;
+      const row = Math.round(word.offsetTop / lineH);
+      setRowOffset(Math.max(0, row - 1) * lineH);
+    });
+  }, [
+    words,
+    wordIndex,
+    typed,
+    wordInputs,
+    recordWordSnapshot,
+    finishTest,
+    onKeyHighlight,
+  ]);
+
+  const processBackspace = useCallback(() => {
+    const currentWord = words[wordIndex];
+    if (typed.length === 0 && wordIndex > 0) {
+      const prevInput = wordInputs[wordIndex - 1];
+      setWordIndex((prev) => prev - 1);
+      setTyped(prevInput);
+      setWordInputs((prev) => prev.slice(0, -1));
+    } else if (typed.length > 0) {
+      const lastIdx = typed.length - 1;
+      const isWrong =
+        lastIdx >= currentWord.length || typed[lastIdx] !== currentWord[lastIdx];
+      if (isWrong) {
+        correctedErrorsRef.current += 1;
+      }
+      setTyped((prev) => prev.slice(0, -1));
+    }
+  }, [words, wordIndex, typed, wordInputs]);
+
+  const processChar = useCallback(
+    (char: string) => {
+      const currentWord = words[wordIndex];
+      allTypedRef.current += 1;
+      const nextTyped = typed + char;
+      setTyped(nextTyped);
+
+      const charIndex = typed.length;
+      const isWrong =
+        charIndex >= currentWord.length || char !== currentWord[charIndex];
+      if (isWrong) {
+        onWrongKey?.();
+      }
+
+      const isLastWord = wordIndex + 1 >= words.length;
+      if (
+        isLastWord &&
+        nextTyped.length >= currentWord.length &&
+        mode !== "time" &&
+        mode !== "zen"
+      ) {
+        for (
+          let i = 0;
+          i < Math.min(nextTyped.length, currentWord.length);
+          i++
+        ) {
+          if (nextTyped[i] !== currentWord[i]) {
+            errorsThisSecondRef.current++;
+          }
+        }
+        if (nextTyped.length > currentWord.length) {
+          errorsThisSecondRef.current++;
+        }
+        const nextInputs = [...wordInputs, nextTyped];
+        setWordInputs(nextInputs);
+        recordWordSnapshot(nextInputs, "", wordIndex + 1);
+        finishTest();
+        return;
+      }
+
+      const nextCharIndex = nextTyped.length;
+      onKeyHighlight?.(
+        nextCharIndex < currentWord.length ? currentWord[nextCharIndex] : " "
+      );
+    },
+    [
+      words,
+      wordIndex,
+      typed,
+      wordInputs,
+      mode,
+      recordWordSnapshot,
+      finishTest,
+      onKeyHighlight,
+      onWrongKey,
+    ]
+  );
+
+  // Feed a single character or control token into the test. Returns true if
+  // the input was consumed (used to start the test / mark activity).
+  const handleTypedInput = useCallback(
+    (input: string) => {
+      if (finished) {
+        return;
+      }
+      ensureStarted();
+      markTypingActive();
+      if (input === " ") {
+        processSpace();
+      } else if (input === "Backspace") {
+        processBackspace();
+      } else if (input.length === 1) {
+        processChar(input);
+      }
+    },
+    [
+      finished,
+      ensureStarted,
+      markTypingActive,
+      processSpace,
+      processBackspace,
+      processChar,
+    ]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       const isAltWordDelete =
@@ -433,12 +638,7 @@ export function useTypingTest({
         if (finished) {
           return;
         }
-        if (!started) {
-          setStarted(true);
-          setStartTime(Date.now());
-          setShowControls(false);
-          onTypingActiveChange?.(true);
-        }
+        ensureStarted();
         markTypingActive();
         clearWordOrNavigateBack();
         return;
@@ -474,184 +674,85 @@ export function useTypingTest({
         return;
       }
 
-      // Don't start the test (or process further) for non-character keys like Shift, Enter, ArrowLeft, etc.
+      // Soft keyboards (Android/Gboard) report key="Unidentified" (keyCode 229)
+      // and deliver the real characters via the beforeinput event instead.
+      // Let those fall through to handleBeforeInput.
+      if (e.key === "Unidentified" || e.keyCode === 229) {
+        return;
+      }
+
+      // Non-character keys (Shift, Arrow*, etc.) never start or affect the test.
       if (e.key.length > 1 && e.key !== "Backspace") {
         return;
       }
 
-      if (!started) {
-        setStarted(true);
-        setStartTime(Date.now());
-        setShowControls(false);
-        onTypingActiveChange?.(true);
-
-        // Rule 3: start the countdown timer here in the event handler instead
-        // of reacting to `started` changing in a useEffect.
-        if (mode === "time") {
-          let elapsedTicks = 0;
-          timerRef.current = setInterval(() => {
-            elapsedTicks += 1;
-            elapsedSecondsRef.current = elapsedTicks;
-            const elapsedMin = elapsedTicks / 60;
-            const snapWpm =
-              elapsedMin > 0
-                ? Math.round(correctCharsRef.current / 5 / elapsedMin)
-                : 0;
-            const snapRaw =
-              elapsedMin > 0
-                ? Math.max(
-                    Math.round(allTypedRef.current / 5 / elapsedMin),
-                    snapWpm
-                  )
-                : 0;
-            setWpmHistory((prev) => [
-              ...prev,
-              {
-                second: elapsedTicks,
-                wpm: snapWpm,
-                raw: snapRaw,
-                errors: errorsThisSecondRef.current,
-              },
-            ]);
-            errorsThisSecondRef.current = 0;
-            if (elapsedTicks >= timeOption) {
-              clearInterval(timerRef.current!);
-              timerRef.current = null;
-              finishTestRef.current?.();
-            } else {
-              setTimeLeft(timeOption - elapsedTicks);
-            }
-          }, 1000);
-        }
-      }
-
-      markTypingActive();
-
-      const currentWord = words[wordIndex];
-
+      // This physical keydown consumes a typing key; mark it so the paired
+      // beforeinput event for the same key is ignored (avoids double entry).
       if (e.key === " ") {
         e.preventDefault();
-        if (typed.length === 0) {
-          return;
-        }
-
-        allTypedRef.current += 1; // count the space keystroke so raw >= wpm
-
-        for (let i = 0; i < Math.min(typed.length, currentWord.length); i++) {
-          if (typed[i] !== currentWord[i]) {
-            errorsThisSecondRef.current++;
-          }
-        }
-        if (typed.length > currentWord.length) {
-          errorsThisSecondRef.current++;
-        }
-
-        const nextInputs = [...wordInputs, typed];
-        const nextIndex = wordIndex + 1;
-        recordWordSnapshot(nextInputs, "", nextIndex);
-
-        if (wordIndex + 1 >= words.length) {
-          setWordInputs(nextInputs);
-          finishTest();
-          return;
-        }
-        setWordInputs(nextInputs);
-        setWordIndex(nextIndex);
-        setTyped("");
-        onKeyHighlight?.(null);
-        // Rule 3: measure DOM row offset after React re-renders the new active word.
-        requestAnimationFrame(() => {
-          if (!activeWordRef.current) {
-            return;
-          }
-          const word = activeWordRef.current;
-          const lineH = word.offsetHeight + 4;
-          const row = Math.round(word.offsetTop / lineH);
-          setRowOffset(Math.max(0, row - 1) * lineH);
-        });
-        return;
       }
-
-      if (e.key === "Backspace") {
-        if (typed.length === 0 && wordIndex > 0) {
-          const prevInput = wordInputs[wordIndex - 1];
-          setWordIndex((prev) => prev - 1);
-          setTyped(prevInput);
-          setWordInputs((prev) => prev.slice(0, -1));
-        } else if (typed.length > 0) {
-          const lastIdx = typed.length - 1;
-          const isWrong =
-            lastIdx >= currentWord.length ||
-            typed[lastIdx] !== currentWord[lastIdx];
-          if (isWrong) {
-            correctedErrorsRef.current += 1;
-          }
-          setTyped((prev) => prev.slice(0, -1));
-        }
-        return;
-      }
-
-      if (e.key.length === 1) {
-        allTypedRef.current += 1;
-        const nextTyped = typed + e.key;
-        setTyped(nextTyped);
-
-        const charIndex = typed.length;
-        const isWrong =
-          charIndex >= currentWord.length || e.key !== currentWord[charIndex];
-        if (isWrong) {
-          onWrongKey?.();
-        }
-
-        const isLastWord = wordIndex + 1 >= words.length;
-        if (
-          isLastWord &&
-          nextTyped.length >= currentWord.length &&
-          mode !== "time" &&
-          mode !== "zen"
-        ) {
-          for (
-            let i = 0;
-            i < Math.min(nextTyped.length, currentWord.length);
-            i++
-          ) {
-            if (nextTyped[i] !== currentWord[i]) {
-              errorsThisSecondRef.current++;
-            }
-          }
-          if (nextTyped.length > currentWord.length) {
-            errorsThisSecondRef.current++;
-          }
-          const nextInputs = [...wordInputs, nextTyped];
-          setWordInputs(nextInputs);
-          recordWordSnapshot(nextInputs, "", wordIndex + 1);
-          finishTest();
-          return;
-        }
-
-        const nextCharIndex = nextTyped.length;
-        onKeyHighlight?.(
-          nextCharIndex < currentWord.length ? currentWord[nextCharIndex] : " "
-        );
-      }
+      usedKeyDownRef.current = true;
+      handleTypedInput(e.key);
     },
     [
       finished,
       started,
-      words,
-      wordIndex,
-      typed,
-      wordInputs,
       mode,
-      timeOption,
       resetTest,
       finishTest,
-      onKeyHighlight,
-      recordWordSnapshot,
+      ensureStarted,
       markTypingActive,
-      onTypingActiveChange,
-      onWrongKey,
       clearWordOrNavigateBack,
+      handleTypedInput,
+    ]
+  );
+
+  // Captures characters from soft keyboards (mobile), IME, autocorrect, and
+  // paste. Desktop physical keys are handled by handleKeyDown; the
+  // usedKeyDownRef guard prevents processing the same key twice.
+  const handleBeforeInput = useCallback(
+    (e: React.FormEvent<HTMLInputElement>) => {
+      // Always prevent the native input mutation — `typed` is fully controlled.
+      e.preventDefault();
+
+      if (usedKeyDownRef.current) {
+        usedKeyDownRef.current = false;
+        return;
+      }
+      if (finished) {
+        return;
+      }
+
+      const native = e.nativeEvent as InputEvent;
+      const inputType = native.inputType;
+
+      if (
+        inputType === "deleteContentBackward" ||
+        inputType === "deleteContentForward" ||
+        inputType === "deleteWordBackward"
+      ) {
+        ensureStarted();
+        markTypingActive();
+        processBackspace();
+        return;
+      }
+
+      const data = native.data;
+      if (!data) {
+        return;
+      }
+
+      // `data` may contain multiple characters (autocorrect, swipe, paste).
+      for (const char of data) {
+        handleTypedInput(char);
+      }
+    },
+    [
+      finished,
+      ensureStarted,
+      markTypingActive,
+      processBackspace,
+      handleTypedInput,
     ]
   );
 
@@ -886,6 +987,7 @@ export function useTypingTest({
     activeWordRef,
     // Handlers
     handleKeyDown,
+    handleBeforeInput,
     handleFocus,
     handleInputBlur,
     handleInputFocus,

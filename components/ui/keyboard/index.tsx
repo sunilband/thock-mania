@@ -5,6 +5,7 @@ export type {
   KeyboardEventSource,
   KeyboardInteractionEvent,
   KeyboardProps,
+  KeyboardSize,
   KeyboardThemeName,
 } from "./types";
 export { KEYCODE } from "./types";

@@ -13,6 +13,16 @@ export type KeyboardThemeName =
   | "scarlet"
   | "carbon";
 
+/** Physical form factor of the rendered keyboard. */
+export type KeyboardSize =
+  | "full"
+  | "1800"
+  | "tkl"
+  | "75"
+  | "65"
+  | "60"
+  | "40";
+
 export interface KeyboardInteractionEvent {
   code: string;
   phase: KeyboardEventPhase;
@@ -28,6 +38,8 @@ export interface KeyboardProps {
   onKeyEvent?: (event: KeyboardInteractionEvent) => void;
   /** When false, physical key presses are ignored (use when the typing area is not focused) */
   physicalKeysEnabled?: boolean;
+  /** Physical form factor / size of the rendered keyboard. Defaults to "75". */
+  size?: KeyboardSize;
   soundUrl?: string;
   theme?: KeyboardThemeName;
   /** Volume 0–1, default 0.5 */
@@ -124,6 +136,25 @@ export enum KEYCODE {
   ArrowDown = "ArrowDown",
   ArrowRight = "ArrowRight",
   AltRight = "AltRight",
+  Insert = "Insert",
+  NumLock = "NumLock",
+  NumpadDivide = "NumpadDivide",
+  NumpadMultiply = "NumpadMultiply",
+  NumpadSubtract = "NumpadSubtract",
+  NumpadAdd = "NumpadAdd",
+  NumpadEnter = "NumpadEnter",
+  NumpadDecimal = "NumpadDecimal",
+  NumpadEqual = "NumpadEqual",
+  Numpad0 = "Numpad0",
+  Numpad1 = "Numpad1",
+  Numpad2 = "Numpad2",
+  Numpad3 = "Numpad3",
+  Numpad4 = "Numpad4",
+  Numpad5 = "Numpad5",
+  Numpad6 = "Numpad6",
+  Numpad7 = "Numpad7",
+  Numpad8 = "Numpad8",
+  Numpad9 = "Numpad9",
 }
 
 export type KeyVariantSlot = "accent" | "dark" | "light";

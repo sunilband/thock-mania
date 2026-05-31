@@ -88,6 +88,30 @@ export const SOUND_DEFINES_DOWN: Record<string, [number, number]> = {
   AltRight: [35_878, 90],
 };
 
+// Numpad / extra navigation keys reuse the timings of their main-cluster
+// equivalents so every form factor stays audible without new sample data.
+Object.assign(SOUND_DEFINES_DOWN, {
+  Insert: SOUND_DEFINES_DOWN.Delete,
+  NumLock: SOUND_DEFINES_DOWN.Escape,
+  NumpadDivide: SOUND_DEFINES_DOWN.Slash,
+  NumpadMultiply: SOUND_DEFINES_DOWN.Digit8,
+  NumpadSubtract: SOUND_DEFINES_DOWN.Minus,
+  NumpadAdd: SOUND_DEFINES_DOWN.Equal,
+  NumpadEnter: SOUND_DEFINES_DOWN.Enter,
+  NumpadDecimal: SOUND_DEFINES_DOWN.Period,
+  NumpadEqual: SOUND_DEFINES_DOWN.Equal,
+  Numpad0: SOUND_DEFINES_DOWN.Digit0,
+  Numpad1: SOUND_DEFINES_DOWN.Digit1,
+  Numpad2: SOUND_DEFINES_DOWN.Digit2,
+  Numpad3: SOUND_DEFINES_DOWN.Digit3,
+  Numpad4: SOUND_DEFINES_DOWN.Digit4,
+  Numpad5: SOUND_DEFINES_DOWN.Digit5,
+  Numpad6: SOUND_DEFINES_DOWN.Digit6,
+  Numpad7: SOUND_DEFINES_DOWN.Digit7,
+  Numpad8: SOUND_DEFINES_DOWN.Digit8,
+  Numpad9: SOUND_DEFINES_DOWN.Digit9,
+});
+
 export const SOUND_DEFINES_UP: Record<string, [number, number]> = {
   Escape: [9069 + 115, 94],
   F1: [2754 + 104, 85],
@@ -175,3 +199,26 @@ export const SOUND_DEFINES_UP: Record<string, [number, number]> = {
   ArrowRight: [37_586 + 88, 72],
   AltRight: [35_878 + 90, 74],
 };
+
+// Mirror the key-up timings for the numpad / extra navigation keys.
+Object.assign(SOUND_DEFINES_UP, {
+  Insert: SOUND_DEFINES_UP.Delete,
+  NumLock: SOUND_DEFINES_UP.Escape,
+  NumpadDivide: SOUND_DEFINES_UP.Slash,
+  NumpadMultiply: SOUND_DEFINES_UP.Digit8,
+  NumpadSubtract: SOUND_DEFINES_UP.Minus,
+  NumpadAdd: SOUND_DEFINES_UP.Equal,
+  NumpadEnter: SOUND_DEFINES_UP.Enter,
+  NumpadDecimal: SOUND_DEFINES_UP.Period,
+  NumpadEqual: SOUND_DEFINES_UP.Equal,
+  Numpad0: SOUND_DEFINES_UP.Digit0,
+  Numpad1: SOUND_DEFINES_UP.Digit1,
+  Numpad2: SOUND_DEFINES_UP.Digit2,
+  Numpad3: SOUND_DEFINES_UP.Digit3,
+  Numpad4: SOUND_DEFINES_UP.Digit4,
+  Numpad5: SOUND_DEFINES_UP.Digit5,
+  Numpad6: SOUND_DEFINES_UP.Digit6,
+  Numpad7: SOUND_DEFINES_UP.Digit7,
+  Numpad8: SOUND_DEFINES_UP.Digit8,
+  Numpad9: SOUND_DEFINES_UP.Digit9,
+});

@@ -1,28 +1,6 @@
 "use client";
 
 import {
-  IconArrowNarrowLeft,
-  IconBrightnessDown,
-  IconBrightnessUp,
-  IconBulb,
-  IconChevronDown,
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronUp,
-  IconCommand,
-  IconFrame,
-  IconLayoutDashboard,
-  IconMicrophone,
-  IconMoon,
-  IconPlayerSkipForward,
-  IconPlayerTrackNext,
-  IconPlayerTrackPrev,
-  IconSearch,
-  IconVolume,
-  IconVolume2,
-  IconVolume3,
-} from "@tabler/icons-react";
-import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
   useRef,
@@ -32,6 +10,7 @@ import { QWERTY_LAYOUT } from "@/lib/keyboard-layouts";
 import { cn } from "@/lib/utils";
 
 import { KeyboardProvider, useKeyboardContext } from "./context";
+import { type BoardCell, getBoardRows, SPECIAL_CONTENT } from "./layouts";
 import { KEYBOARD_THEMES, resolveKeyVariant, toRgba } from "./themes";
 import { KEYCODE, type KeyboardProps } from "./types";
 
@@ -48,6 +27,7 @@ export function Keyboard({
   onKeyEvent,
   forceActive = false,
   physicalKeysEnabled = true,
+  size = "75",
   volume = 0.5,
 }: KeyboardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +42,7 @@ export function Keyboard({
       layout={layout}
       onKeyEvent={onKeyEvent}
       physicalKeysEnabled={physicalKeysEnabled}
+      size={size}
       soundUrl={soundUrl}
       theme={theme}
       volume={volume}
@@ -80,229 +61,51 @@ export default Keyboard;
 // -----------------------------------------------------------------------------
 
 function KeyboardKeys() {
-  const { layout } = useKeyboardContext();
+  const { layout, size } = useKeyboardContext();
+  const rows = getBoardRows(size);
 
-  /** Helper: resolve label for a key from the current layout, falling back to QWERTY. */
+  /** Resolve dual labels for a key from the active layout, falling back to QWERTY. */
   function label(keyCode: string): [string, string?] | undefined {
     return layout[keyCode] ?? QWERTY_LAYOUT[keyCode];
+  }
+
+  function renderCell(cell: BoardCell, index: number) {
+    if (cell.type === "gap") {
+      return <div key={`gap-${index}`} style={{ width: cell.width }} />;
+    }
+
+    // Letter/number keys render their (possibly shifted) dual labels.
+    const labels = label(cell.code);
+    const hasSpecial = cell.code in SPECIAL_CONTENT;
+    if (!hasSpecial && labels) {
+      return (
+        <DualKey
+          key={cell.code}
+          keyCode={cell.code}
+          labels={labels}
+          width={cell.width}
+        />
+      );
+    }
+
+    return (
+      <Key key={cell.code} keyCode={cell.code} width={cell.width}>
+        {SPECIAL_CONTENT[cell.code]}
+      </Key>
+    );
   }
 
   return (
     <div>
       <div className="h-fit w-fit rounded-[16px] border-2 border-black bg-black/70 p-3 dark:border-white/20 dark:bg-white/20">
-        <div className="h-[278px] rounded-[5px] rounded-t-[8px] border border-black bg-black/80 dark:border-zinc-500 dark:bg-zinc-700">
+        <div className="rounded-[5px] rounded-t-[8px] border border-black bg-black/80 pt-1 dark:border-zinc-500 dark:bg-zinc-700">
           <div className="-translate-y-1 -space-y-1 overflow-hidden rounded-[5px]">
-            <Row>
-              <Key keyCode={KEYCODE.Escape}>{"esc"}</Key>
-
-              <Key keyCode={KEYCODE.F1}>
-                <IconBrightnessDown className="size-[10px]" />
-                <span>{"F1"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F2}>
-                <IconBrightnessUp className="size-[10px]" />
-                <span>{"F2"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F3}>
-                <IconLayoutDashboard className="size-[10px]" />
-                <span>{"F3"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F4}>
-                <IconSearch className="size-[10px]" />
-                <span>{"F4"}</span>
-              </Key>
-
-              <Key keyCode={KEYCODE.F5}>
-                <IconMicrophone className="size-[10px]" />
-                <span>{"F5"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F6}>
-                <IconMoon className="size-[10px]" />
-                <span>{"F6"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F7}>
-                <IconPlayerTrackPrev className="size-[10px]" />
-                <span>{"F7"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F8}>
-                <IconPlayerSkipForward className="size-[10px]" />
-                <span>{"F8"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F9}>
-                <IconPlayerTrackNext className="size-[10px]" />
-                <span>{"F9"}</span>
-              </Key>
-
-              <Key keyCode={KEYCODE.F10}>
-                <IconVolume3 className="size-[10px]" />
-                <span>{"F10"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F11}>
-                <IconVolume2 className="size-[10px]" />
-                <span>{"F11"}</span>
-              </Key>
-              <Key keyCode={KEYCODE.F12}>
-                <IconVolume className="size-[10px]" />
-                <span>{"F12"}</span>
-              </Key>
-
-              <Key keyCode={KEYCODE.F13}>
-                <IconFrame className="size-[10px]" />
-              </Key>
-              <Key keyCode={KEYCODE.Delete}>{"del"}</Key>
-              <Key keyCode={KEYCODE.F14}>
-                <IconBulb className="size-[12px]" />
-              </Key>
-            </Row>
-
-            <Row>
-              <DualKey
-                keyCode={KEYCODE.Backquote}
-                labels={label("Backquote")}
-              />
-
-              <DualKey keyCode={KEYCODE.Digit1} labels={label("Digit1")} />
-              <DualKey keyCode={KEYCODE.Digit2} labels={label("Digit2")} />
-              <DualKey keyCode={KEYCODE.Digit3} labels={label("Digit3")} />
-              <DualKey keyCode={KEYCODE.Digit4} labels={label("Digit4")} />
-
-              <DualKey keyCode={KEYCODE.Digit5} labels={label("Digit5")} />
-              <DualKey keyCode={KEYCODE.Digit6} labels={label("Digit6")} />
-              <DualKey keyCode={KEYCODE.Digit7} labels={label("Digit7")} />
-              <DualKey keyCode={KEYCODE.Digit8} labels={label("Digit8")} />
-              <DualKey keyCode={KEYCODE.Digit9} labels={label("Digit9")} />
-
-              <DualKey keyCode={KEYCODE.Digit0} labels={label("Digit0")} />
-              <DualKey keyCode={KEYCODE.Minus} labels={label("Minus")} />
-              <DualKey keyCode={KEYCODE.Equal} labels={label("Equal")} />
-
-              <Key keyCode={KEYCODE.Backspace} width={100}>
-                <IconArrowNarrowLeft className="size-[12px]" />
-              </Key>
-              <Key keyCode={KEYCODE.PageUp}>{"pgup"}</Key>
-            </Row>
-
-            <Row>
-              <Key keyCode={KEYCODE.Tab} width={75}>
-                {"tab"}
-              </Key>
-
-              <DualKey keyCode={KEYCODE.KeyQ} labels={label("KeyQ")} />
-              <DualKey keyCode={KEYCODE.KeyW} labels={label("KeyW")} />
-              <DualKey keyCode={KEYCODE.KeyE} labels={label("KeyE")} />
-              <DualKey keyCode={KEYCODE.KeyR} labels={label("KeyR")} />
-
-              <DualKey keyCode={KEYCODE.KeyT} labels={label("KeyT")} />
-              <DualKey keyCode={KEYCODE.KeyY} labels={label("KeyY")} />
-              <DualKey keyCode={KEYCODE.KeyU} labels={label("KeyU")} />
-              <DualKey keyCode={KEYCODE.KeyI} labels={label("KeyI")} />
-              <DualKey keyCode={KEYCODE.KeyO} labels={label("KeyO")} />
-              <DualKey keyCode={KEYCODE.KeyP} labels={label("KeyP")} />
-
-              <DualKey
-                keyCode={KEYCODE.BracketLeft}
-                labels={label("BracketLeft")}
-              />
-              <DualKey
-                keyCode={KEYCODE.BracketRight}
-                labels={label("BracketRight")}
-              />
-
-              <DualKey
-                keyCode={KEYCODE.Backslash}
-                labels={label("Backslash")}
-                width={75}
-              />
-              <Key keyCode={KEYCODE.PageDown}>{"pgdn"}</Key>
-            </Row>
-
-            <Row>
-              <Key keyCode={KEYCODE.CapsLock} width={100}>
-                {"caps lock"}
-              </Key>
-
-              <DualKey keyCode={KEYCODE.KeyA} labels={label("KeyA")} />
-              <DualKey keyCode={KEYCODE.KeyS} labels={label("KeyS")} />
-              <DualKey keyCode={KEYCODE.KeyD} labels={label("KeyD")} />
-              <DualKey keyCode={KEYCODE.KeyF} labels={label("KeyF")} />
-
-              <DualKey keyCode={KEYCODE.KeyG} labels={label("KeyG")} />
-              <DualKey keyCode={KEYCODE.KeyH} labels={label("KeyH")} />
-              <DualKey keyCode={KEYCODE.KeyJ} labels={label("KeyJ")} />
-              <DualKey keyCode={KEYCODE.KeyK} labels={label("KeyK")} />
-              <DualKey keyCode={KEYCODE.KeyL} labels={label("KeyL")} />
-
-              <DualKey
-                keyCode={KEYCODE.Semicolon}
-                labels={label("Semicolon")}
-              />
-              <DualKey keyCode={KEYCODE.Quote} labels={label("Quote")} />
-
-              <Key keyCode={KEYCODE.Enter} width={100}>
-                {"return"}
-              </Key>
-              <Key keyCode={KEYCODE.Home}>{"home"}</Key>
-            </Row>
-
-            <Row>
-              <Key keyCode={KEYCODE.ShiftLeft} width={123}>
-                {"shift"}
-              </Key>
-
-              <DualKey keyCode={KEYCODE.KeyZ} labels={label("KeyZ")} />
-              <DualKey keyCode={KEYCODE.KeyX} labels={label("KeyX")} />
-              <DualKey keyCode={KEYCODE.KeyC} labels={label("KeyC")} />
-              <DualKey keyCode={KEYCODE.KeyV} labels={label("KeyV")} />
-
-              <DualKey keyCode={KEYCODE.KeyB} labels={label("KeyB")} />
-              <DualKey keyCode={KEYCODE.KeyN} labels={label("KeyN")} />
-              <DualKey keyCode={KEYCODE.KeyM} labels={label("KeyM")} />
-
-              <DualKey keyCode={KEYCODE.Comma} labels={label("Comma")} />
-              <DualKey keyCode={KEYCODE.Period} labels={label("Period")} />
-              <DualKey keyCode={KEYCODE.Slash} labels={label("Slash")} />
-
-              <Key keyCode={KEYCODE.ShiftRight} width={77}>
-                {"shift"}
-              </Key>
-              <Key keyCode={KEYCODE.ArrowUp}>
-                <IconChevronUp className="size-[12px]" />
-              </Key>
-              <Key keyCode={KEYCODE.End}>{"end"}</Key>
-            </Row>
-
-            <Row>
-              <Key keyCode={KEYCODE.ControlLeft} width={62}>
-                {"ctrl"}
-              </Key>
-              <Key keyCode={KEYCODE.AltLeft} width={62}>
-                {"option"}
-              </Key>
-              <Key keyCode={KEYCODE.MetaLeft} width={62}>
-                <IconCommand className="size-[12px]" />
-              </Key>
-
-              <Key keyCode={KEYCODE.Space} width={314}>
-                {/* <span className="text-[7px] tracking-widest opacity-50">
-                  {"Built by Sunil Band"}
-                </span> */}
-              </Key>
-
-              <Key keyCode={KEYCODE.MetaRight}>
-                <IconCommand className="size-[12px]" />
-              </Key>
-              <Key keyCode={KEYCODE.Fn}>{"fn"}</Key>
-              <Key keyCode={KEYCODE.ControlRight}>{"ctrl"}</Key>
-              <Key keyCode={KEYCODE.ArrowLeft}>
-                <IconChevronLeft className="size-[12px]" />
-              </Key>
-              <Key keyCode={KEYCODE.ArrowDown}>
-                <IconChevronDown className="size-[12px]" />
-              </Key>
-              <Key keyCode={KEYCODE.ArrowRight}>
-                <IconChevronRight className="size-[12px]" />
-              </Key>
-            </Row>
+            {rows.map((row, rowIndex) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: rows are static per layout
+              <Row key={rowIndex}>
+                {row.map((cell, cellIndex) => renderCell(cell, cellIndex))}
+              </Row>
+            ))}
           </div>
         </div>
       </div>
