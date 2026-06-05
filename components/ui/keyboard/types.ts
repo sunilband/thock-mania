@@ -14,14 +14,7 @@ export type KeyboardThemeName =
   | "carbon";
 
 /** Physical form factor of the rendered keyboard. */
-export type KeyboardSize =
-  | "full"
-  | "1800"
-  | "tkl"
-  | "75"
-  | "65"
-  | "60"
-  | "40";
+export type KeyboardSize = "full" | "1800" | "tkl" | "75" | "65" | "60" | "40";
 
 export interface KeyboardInteractionEvent {
   code: string;

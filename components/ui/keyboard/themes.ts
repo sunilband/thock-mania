@@ -207,9 +207,9 @@ export function toRgba(color: string, alpha: number): string {
   const hex =
     value.length === 3
       ? value
-        .split("")
-        .map((char) => `${char}${char}`)
-        .join("")
+          .split("")
+          .map((char) => `${char}${char}`)
+          .join("")
       : value;
 
   if (hex.length !== 6) {

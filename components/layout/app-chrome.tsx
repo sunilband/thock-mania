@@ -24,13 +24,13 @@ import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
-import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
 import { HistoryPanel } from "@/components/typing/history/history-panel";
+import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
 import { cn } from "@/lib/utils";
 
 interface AppChromeContextValue {
-  homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
   historyOpen: boolean;
+  homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
   setHistoryOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTypingActive: (active: boolean) => void;

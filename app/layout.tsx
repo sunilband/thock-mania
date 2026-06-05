@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist_Mono, Space_Grotesk } from "next/font/google";
 
@@ -149,6 +150,7 @@ export default function RootLayout({
             <AppChrome>{children}</AppChrome>
           </SettingsProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

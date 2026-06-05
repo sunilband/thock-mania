@@ -23,16 +23,13 @@ function buildFaviconHref(
     // sound waves (the "thock")
     `<path d="M22.5 11.5 Q26 16 22.5 20.5" stroke="${a}" stroke-width="2.1" stroke-linecap="round" fill="none"/>` +
     `<path d="M25.5 8.5 Q31 16 25.5 23.5" stroke="${a}" stroke-width="2.1" stroke-linecap="round" stroke-opacity="0.55" fill="none"/>` +
-    `</svg>`;
+    "</svg>";
 
   return `data:image/svg+xml;base64,${globalThis.btoa(svg)}`;
 }
 
 /** Resolve a CSS custom property to a computed rgb/rgba string. */
-function resolveColor(
-  probe: HTMLElement,
-  value: string
-): string | null {
+function resolveColor(probe: HTMLElement, value: string): string | null {
   probe.style.backgroundColor = value;
   // Force style recalc by reading the computed value
   const resolved = getComputedStyle(probe).backgroundColor;
@@ -62,7 +59,7 @@ function readThemeColors(): {
 
   probe.remove();
 
-  if (!accent || !background) {
+  if (!(accent && background)) {
     return null;
   }
 

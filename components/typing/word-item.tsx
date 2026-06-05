@@ -44,8 +44,8 @@ export const WordItem = memo(function WordItem({
       className={cn(
         "relative",
         isPast &&
-        hasError &&
-        "after:absolute after:right-0 after:bottom-0 after:left-0 after:h-[2px] after:rounded-full after:bg-destructive/50"
+          hasError &&
+          "after:absolute after:right-0 after:bottom-0 after:left-0 after:h-[2px] after:rounded-full after:bg-destructive/50"
       )}
       ref={isActive ? elemRef : undefined}
       style={dimmed ? { opacity: 0.05 } : undefined}

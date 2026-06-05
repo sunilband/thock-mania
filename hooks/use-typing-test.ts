@@ -148,10 +148,10 @@ export function useTypingTest({
   const wpm =
     started && startTime && !finished
       ? Math.round(
-        wpmNumerator /
-        5 /
-        Math.max((Date.now() - startTime) / 1000 / 60, 1 / 60)
-      )
+          wpmNumerator /
+            5 /
+            Math.max((Date.now() - startTime) / 1000 / 60, 1 / 60)
+        )
       : 0;
 
   // ── finishTest ───────────────────────────────────────────────────────────
@@ -458,9 +458,9 @@ export function useTypingTest({
         const snapRaw =
           elapsedMin > 0
             ? Math.max(
-              Math.round(allTypedRef.current / 5 / elapsedMin),
-              snapWpm
-            )
+                Math.round(allTypedRef.current / 5 / elapsedMin),
+                snapWpm
+              )
             : 0;
         setWpmHistory((prev) => [
           ...prev,
@@ -495,7 +495,11 @@ export function useTypingTest({
 
     allTypedRef.current += 1; // count the space keystroke so raw >= wpm
 
-    for (let i = 0; i < Math.min(currentTyped.length, currentWord.length); i++) {
+    for (
+      let i = 0;
+      i < Math.min(currentTyped.length, currentWord.length);
+      i++
+    ) {
       if (currentTyped[i] !== currentWord[i]) {
         errorsThisSecondRef.current++;
       }

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { KeyboardProvider, useKeyboardContext } from "./context";
 import { type BoardCell, getBoardRows, SPECIAL_CONTENT } from "./layouts";
 import { KEYBOARD_THEMES, resolveKeyVariant, toRgba } from "./themes";
-import { KEYCODE, type KeyboardProps } from "./types";
+import type { KEYCODE, KeyboardProps } from "./types";
 
 // -----------------------------------------------------------------------------
 // Public component
