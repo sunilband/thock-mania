@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { At, Clock, Hash, Sliders } from "@phosphor-icons/react"
-import type { ReactNode } from "react"
+import { At, Clock, Hash, Sliders } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 import {
   Drawer,
   DrawerClose,
@@ -9,10 +9,10 @@ import {
   DrawerPopup,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import { cn } from "@/lib/utils"
-import { groupClass, MODES, Sep } from "./primitives"
-import type { TestControlsProps } from "./test-controls"
+} from "@/components/ui/drawer";
+import { cn } from "@/lib/utils";
+import { groupClass, MODES, Sep } from "./primitives";
+import type { TestControlsProps } from "./test-controls";
 
 /* ─── Drawer helpers ─────────────────────────────────────── */
 
@@ -20,8 +20,8 @@ function DrawerSection({
   title,
   children,
 }: {
-  title: string
-  children: ReactNode
+  title: string;
+  children: ReactNode;
 }) {
   return (
     <div>
@@ -30,7 +30,7 @@ function DrawerSection({
       </p>
       {children}
     </div>
-  )
+  );
 }
 
 function DrawerChip({
@@ -38,9 +38,9 @@ function DrawerChip({
   onClick,
   children,
 }: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -48,14 +48,14 @@ function DrawerChip({
         "flex items-center gap-1.5 rounded-xl px-3.5 py-2 font-medium text-xs transition-colors duration-150",
         active
           ? "bg-primary/10 text-primary"
-          : "bg-foreground/[0.04] text-muted-foreground/50 hover:text-muted-foreground",
+          : "bg-foreground/[0.04] text-muted-foreground/50 hover:text-muted-foreground"
       )}
       onClick={onClick}
       type="button"
     >
       {children}
     </button>
-  )
+  );
 }
 
 /** Mobile compact trigger bar + bottom drawer with full controls. */
@@ -75,29 +75,29 @@ export function MobileToolbar({
   onNumbersToggle,
   onDifficultyToggle,
 }: TestControlsProps) {
-  const activeMode = MODES.find((m) => m.value === mode)
-  const ActiveIcon = activeMode?.icon ?? Clock
+  const activeMode = MODES.find((m) => m.value === mode);
+  const ActiveIcon = activeMode?.icon ?? Clock;
 
   function getSubLabel() {
     if (mode === "time") {
-      return `${timeOption}s`
+      return `${timeOption}s`;
     }
     if (mode === "words") {
-      return `${wordOption}`
+      return `${wordOption}`;
     }
     if (mode === "quote") {
-      return quoteLength
+      return quoteLength;
     }
-    return "zen"
+    return "zen";
   }
-  const subLabel = getSubLabel()
+  const subLabel = getSubLabel();
 
   const activeModifiers = [
     punctuation && "@",
     numbers && "#",
     difficulty === "easy" && "easy",
     difficulty === "hard" && "hard",
-  ].filter(Boolean)
+  ].filter(Boolean);
 
   return (
     <Drawer>
@@ -105,7 +105,7 @@ export function MobileToolbar({
       <DrawerTrigger
         className={cn(
           groupClass,
-          "gap-2 px-3 py-2 font-medium text-[11px] text-muted-foreground",
+          "gap-2 px-3 py-2 font-medium text-[11px] text-muted-foreground"
         )}
       >
         <ActiveIcon className="text-primary" size={13} weight="duotone" />
@@ -250,5 +250,5 @@ export function MobileToolbar({
         </DrawerContent>
       </DrawerPopup>
     </Drawer>
-  )
+  );
 }
