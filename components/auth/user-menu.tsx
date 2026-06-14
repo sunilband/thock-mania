@@ -1,9 +1,8 @@
 "use client";
 
-import { ClockCounterClockwiseIcon, SignOutIcon, TrophyIcon, UserIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAppChrome } from "@/components/layout/app-chrome";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -92,18 +91,6 @@ export function UserMenu() {
               {user.email}
             </p>
           </div>
-
-          <Link
-            className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground transition-colors",
-              "hover:bg-foreground/[0.05] hover:text-foreground"
-            )}
-            href="/leaderboard"
-            onClick={() => setMenuOpen(false)}
-          >
-            <TrophyIcon size={14} weight="duotone" />
-            Leaderboard
-          </Link>
 
           <button
             className={cn(

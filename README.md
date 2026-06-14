@@ -62,7 +62,7 @@
 
 ## About
 
-**Thock Mania** is a free online typing test with **realistic mechanical keyboard sounds** and real-time WPM tracking. Practice with timed tests, word counts, quotes, or zen mode — featuring an interactive on-screen keyboard, satisfying key sounds, and detailed accuracy stats.
+**Thock Mania** is a free online typing test with **realistic mechanical keyboard sounds** and real-time WPM tracking. Practice with timed tests, word counts, quotes, or zen mode — featuring an interactive on-screen keyboard, satisfying key sounds, detailed accuracy stats, a global leaderboard, and Google sign-in to track your progress.
 
 ## ✨ Features
 
@@ -73,14 +73,19 @@
 | **Virtual keyboard** | Interactive on-screen keyboard that highlights keys as you type, with a header dropdown to switch form factors — 100% (full-size), 96%/1800, 80% TKL, 75%, 65%, 60%, and 40% |
 | **Mobile typing** | Tap to focus and type with the device's soft keyboard — input is captured reliably across iOS and Android (Gboard), including autocorrect and swipe |
 | **Results** | WPM, raw speed, accuracy, character breakdown, consistency, elapsed time, WPM-over-time chart |
+| **Global leaderboard** | Compete for the top spot — one entry per user (your best WPM), powered by Supabase |
+| **Google sign-in** | Sign in with Google to save your history to the cloud and appear on the leaderboard |
+| **Visitor count** | Live "thocks and counting" counter in the header showing total unique visitors |
+| **Cloud history** | When signed in, test history is stored in the database (falls back to localStorage when signed out) |
 | **Local history** | Every completed test is logged on-device — review recent runs plus average and best WPM from the History panel (`⌘H`) |
 | **Keyboard themes** | 7 color schemes — Classic, Mint, Royal, Dolch, Sand, Scarlet, Carbon — each tints the entire UI |
 | **Typing fonts** | 9 fonts — Geist Mono, JetBrains Mono, Fira Code, IBM Plex Mono, Source Code Pro, Inter Tight, Space Grotesk, Nunito, Atkinson Hyperlegible |
 | **Caret styles** | Line, block, or underline caret |
 | **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, keyboard layout size, sound volume, live WPM, ghost mode |
 | **Haptics** | Optional vibration on supported hardware |
+| **Anti-cheat** | Client-side validation prevents impossible scores from reaching the leaderboard |
 
-Settings and history persist in `localStorage` — no account, no backend.
+Settings and history persist in `localStorage` — no account required. Sign in with Google to unlock cloud history and the leaderboard.
 
 ## 🛠 Tech Stack
 
@@ -90,6 +95,7 @@ Settings and history persist in `localStorage` — no account, no backend.
 - [Next.js](https://nextjs.org/) 16: React framework with App Router.
 - [React](https://react.dev/) 19: UI library.
 - [Tailwind CSS](https://tailwindcss.com/): Utility-first CSS framework.
+- [Supabase](https://supabase.com/): Auth, Postgres database, and real-time backend.
 - [Base UI](https://base-ui.com/): Unstyled, accessible component primitives from MUI.
 - [shadcn/ui](https://ui.shadcn.com/): Pre-styled component recipes.
 - [Motion](https://motion.dev/): Animation library for React.
@@ -100,7 +106,7 @@ Settings and history persist in `localStorage` — no account, no backend.
 
 </details><br/>
 
-[![Technologies Used](https://go-skill-icons.vercel.app/api/icons?i=nextjs,react,ts,tailwind,shadcn,framer,bun,biome,vercel&theme=dark&titles=true)](https://github.com/sunilband)
+[![Technologies Used](https://go-skill-icons.vercel.app/api/icons?i=nextjs,react,ts,tailwind,supabase,shadcn,framer,bun,biome,vercel&theme=dark&titles=true)](https://github.com/sunilband)
 
 ## 🧰 Getting Started
 
@@ -112,14 +118,27 @@ Settings and history persist in `localStorage` — no account, no backend.
    cd thock-mania
    ```
 
-3. Install dependencies and start the dev server:
+3. Create a `.env.local` file with your Supabase credentials:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
+   ```
+
+4. Run the SQL migration in your Supabase SQL Editor (see `supabase/migrations/001_initial_schema.sql`).
+
+5. Enable Google as an auth provider in Supabase → Authentication → Providers.
+
+6. Install dependencies and start the dev server:
 
    ```bash
    bun install
    bun dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+> **Note**: The app works fully without Supabase — you just won't have the leaderboard, cloud history, or visitor count. All typing test features work with localStorage alone.
 
 ## 📜 Scripts
 
