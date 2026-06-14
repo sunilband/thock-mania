@@ -2,6 +2,7 @@
 
 import { ChartLineUp, TrashSimple, X } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
 import {
   Drawer,
   DrawerClose,
@@ -58,16 +59,47 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
     bestWpm: 0,
     count: 0,
   });
+  const { user } = useAuth();
 
   // Re-read history whenever the panel opens so it reflects the latest runs.
+  // If user is logged in, fetch from DB; otherwise, use localStorage.
   useEffect(() => {
     if (!open) {
       return;
     }
-    const data = getTestHistory();
-    setEntries(data);
-    setSummary(summarizeHistory(data));
-  }, [open]);
+
+    if (user) {
+      fetch("/api/test-results")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.entries) {
+            const dbEntries: TestHistoryEntry[] = data.entries.map(
+              (e: Record<string, unknown>) => ({
+                wpm: e.wpm as number,
+                raw: e.raw as number,
+                accuracy: e.accuracy as number,
+                consistency: e.consistency as number,
+                mode: e.mode as string,
+                modeDetail: e.modeDetail as string,
+                date: e.date as string,
+              })
+            );
+            setEntries(dbEntries);
+            setSummary(summarizeHistory(dbEntries));
+          }
+        })
+        .catch(() => {
+          // Fallback to localStorage
+          const data = getTestHistory();
+          setEntries(data);
+          setSummary(summarizeHistory(data));
+        });
+    } else {
+      const data = getTestHistory();
+      setEntries(data);
+      setSummary(summarizeHistory(data));
+    }
+  }, [open, user]);
 
   const popupClass = cn(
     "h-full",

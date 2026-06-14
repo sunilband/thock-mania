@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import {
   FONT_OPTIONS,
   type FontOption,
@@ -77,7 +77,7 @@ function FontGroup({
                 {f.label}
               </span>
               {selected && (
-                <Check
+                <CheckIcon
                   className="shrink-0 text-primary"
                   size={14}
                   weight="duotone"

@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretRight, Command, X } from "@phosphor-icons/react";
+import { CaretRightIcon, CommandIcon, XIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import {
   type CaretStyle,
@@ -168,7 +168,7 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
           <div className="mt-auto flex items-center justify-center gap-1.5 pt-6 pb-2 text-[10px] text-muted-foreground/30">
             Press
             <kbd className="inline-flex items-center gap-px rounded border border-foreground/10 bg-foreground/[0.04] px-1 py-0.5 text-[10px] text-muted-foreground/40 leading-none">
-              <Command size={10} weight="duotone" />
+              <CommandIcon size={10} weight="duotone" />
               <span>K</span>
             </kbd>
             to toggle settings
@@ -188,7 +188,7 @@ function SubDrawerHeader({ title }: { title: string }) {
         {title}
       </DrawerTitle>
       <DrawerClose className="flex items-center justify-center rounded-full bg-foreground/[0.06] p-1.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground">
-        <X size={14} />
+        <XIcon size={14} />
         <span className="sr-only">Close</span>
       </DrawerClose>
     </div>
@@ -218,7 +218,7 @@ function SubDrawerRow({
         <span className="text-foreground text-xs">{label}</span>
         <span className="flex items-center gap-2 text-muted-foreground text-xs transition-colors group-hover:text-foreground">
           {preview}
-          <CaretRight
+          <CaretRightIcon
             className="text-muted-foreground/40 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-muted-foreground"
             size={12}
           />

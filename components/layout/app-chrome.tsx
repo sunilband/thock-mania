@@ -1,12 +1,9 @@
 "use client";
 
 import {
-  ClockCounterClockwise,
-  Command,
-  GearSix,
-  GithubLogo,
-  SpeakerHigh,
-  SpeakerSlash,
+  CommandIcon,
+  GearSixIcon,
+  TrophyIcon,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -20,13 +17,14 @@ import {
   useRef,
   useState,
 } from "react";
+import { UserMenu } from "@/components/auth/user-menu";
 import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
+import { VisitorCount } from "@/components/layout/visitor-count";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
 import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
 import { HistoryPanel } from "@/components/typing/history/history-panel";
-import { cn } from "@/lib/utils";
 
 interface AppChromeContextValue {
   homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
@@ -106,9 +104,9 @@ export function AppChrome({ children }: { children: ReactNode }) {
 
 function SiteHeader() {
   const router = useRouter();
-  const { setSettingsOpen, setHistoryOpen, typingActive, homeLogoHandlerRef } =
+  const { setSettingsOpen, typingActive, homeLogoHandlerRef } =
     useAppChrome();
-  const { soundEnabled, setSoundEnabled, showKeyboard } = useSettings();
+  const { showKeyboard } = useSettings();
 
   const dimHeader = typingActive;
 
@@ -158,17 +156,22 @@ function SiteHeader() {
       transition={{ duration: 0.4, ease: "easeInOut" }}
     >
       <div className="relative flex w-full max-w-5xl items-center justify-between">
-        {/* Left — Logo */}
-        <button
-          className="flex cursor-pointer items-center gap-1.5 font-semibold text-primary text-xl tracking-tight"
-          onClick={handleLogoClick}
-          type="button"
-        >
-          <ThockManiaLogo size={20} />
-          Thock Mania
-        </button>
+        {/* Left — Logo + Visitor Count */}
+        <div className="flex items-center gap-4">
+          <button
+            className="flex cursor-pointer items-center gap-1.5 font-semibold text-primary text-xl tracking-tight"
+            onClick={handleLogoClick}
+            type="button"
+          >
+            <ThockManiaLogo size={20} />
+            Thock Mania
+          </button>
+          <div className="hidden md:block">
+            <VisitorCount />
+          </div>
+        </div>
 
-        {/* Right — Audio, Settings, GitHub */}
+        {/* Right — Settings, GitHub, User */}
         <div className="flex items-center gap-2">
           {/* Keyboard layout size — only when the on-screen keyboard is shown */}
           {showKeyboard && (
@@ -176,47 +179,6 @@ function SiteHeader() {
               <KeyboardSizeDropdown />
             </div>
           )}
-
-          {/* Audio toggle */}
-          <motion.button
-            aria-label={soundEnabled ? "Mute audio" : "Unmute audio"}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] transition-colors duration-150",
-              soundEnabled
-                ? "text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground"
-                : "text-muted-foreground/35 hover:bg-foreground/[0.06] hover:text-muted-foreground"
-            )}
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            type="button"
-            whileTap={{ scale: 0.97 }}
-          >
-            <motion.span
-              animate={{ scale: 1, opacity: 1 }}
-              className="inline-flex"
-              initial={{ scale: 0.6, opacity: 0 }}
-              key={String(soundEnabled)}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              {soundEnabled ? (
-                <SpeakerHigh size={15} weight="duotone" />
-              ) : (
-                <SpeakerSlash size={15} weight="duotone" />
-              )}
-            </motion.span>
-            <span className="hidden sm:inline">Audio</span>
-          </motion.button>
-
-          {/* History */}
-          <motion.button
-            aria-label="History"
-            className="flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-            onClick={() => setHistoryOpen(true)}
-            type="button"
-            whileTap={{ scale: 0.97 }}
-          >
-            <ClockCounterClockwise size={15} weight="duotone" />
-            <span className="hidden sm:inline">History</span>
-          </motion.button>
 
           {/* Settings */}
           <motion.button
@@ -226,25 +188,28 @@ function SiteHeader() {
             type="button"
             whileTap={{ scale: 0.97 }}
           >
-            <GearSix size={15} weight="duotone" />
+            <GearSixIcon size={15} weight="duotone" />
             <span className="hidden sm:inline">Settings</span>
             <kbd className="hidden items-center gap-px rounded border border-foreground/10 bg-foreground/[0.04] px-1 py-0.5 text-[10px] text-muted-foreground/40 leading-none sm:inline-flex">
-              <Command size={10} weight="duotone" />
+              <CommandIcon size={10} weight="duotone" />
               <span>K</span>
             </kbd>
           </motion.button>
 
-          {/* GitHub — primary pill */}
-          <motion.a
-            className="flex items-center gap-2 rounded-full bg-foreground px-4 py-1.5 font-medium text-[13px] text-background"
-            href="https://github.com/sunilband/thock-mania"
-            rel="noopener noreferrer"
-            target="_blank"
-            whileTap={{ scale: 0.96 }}
+          {/* Leaderboard */}
+          <motion.button
+            aria-label="Leaderboard"
+            className="flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
+            onClick={() => router.push("/leaderboard")}
+            type="button"
+            whileTap={{ scale: 0.97 }}
           >
-            <GithubLogo size={15} weight="duotone" />
-            <span className="hidden sm:inline">GitHub</span>
-          </motion.a>
+            <TrophyIcon size={15} weight="duotone" />
+            <span className="hidden sm:inline">Leaderboard</span>
+          </motion.button>
+
+          {/* User menu / Sign in */}
+          <UserMenu />
         </div>
       </div>
     </motion.header>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
+import { AuthProvider } from "@/components/auth/auth-provider";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -135,7 +136,7 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var a=localStorage.getItem("tc-accent");if(a)document.documentElement.setAttribute("data-accent",a)}catch(e){}})()`,
+            __html: `(function(){try{var a=localStorage.getItem("tc-accent");if(a)document.documentElement.setAttribute("data-accent",a);var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.classList.add(t)}else if(!t||t==="system"){if(window.matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.classList.add("dark")}}}catch(e){}})()`,
           }}
         />
         <script
@@ -145,9 +146,11 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <SettingsProvider>
-            <AppChrome>{children}</AppChrome>
-          </SettingsProvider>
+          <AuthProvider>
+            <SettingsProvider>
+              <AppChrome>{children}</AppChrome>
+            </SettingsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

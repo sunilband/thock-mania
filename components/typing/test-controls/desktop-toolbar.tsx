@@ -1,6 +1,6 @@
 "use client";
 
-import { At, Hash } from "@phosphor-icons/react";
+import { AtIcon, HashIcon } from "@phosphor-icons/react";
 import { LayoutGroup } from "motion/react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,11 +36,11 @@ export function DesktopToolbar({
         {/* Toggles */}
         <div className={groupClass}>
           <Toggle active={punctuation} onClick={onPunctuationToggle}>
-            <At size={13} weight="duotone" />
+            <AtIcon size={13} weight="duotone" />
             punctuation
           </Toggle>
           <Toggle active={numbers} onClick={onNumbersToggle}>
-            <Hash size={13} weight="duotone" />
+            <HashIcon size={13} weight="duotone" />
             numbers
           </Toggle>
           <Sep />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Mountains, Quotes, TextAa } from "@phosphor-icons/react";
+import { ClockIcon, MountainsIcon, QuotesIcon, TextAaIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import type { QuoteLength } from "@/lib/quotes";
@@ -8,10 +8,10 @@ import type { TestMode, TimeOption, WordOption } from "@/lib/test-storage";
 import { cn } from "@/lib/utils";
 
 export const MODES = [
-  { value: "time", icon: Clock, label: "time" },
-  { value: "words", icon: TextAa, label: "words" },
-  { value: "quote", icon: Quotes, label: "quote" },
-  { value: "zen", icon: Mountains, label: "zen" },
+  { value: "time", icon: ClockIcon, label: "time" },
+  { value: "words", icon: TextAaIcon, label: "words" },
+  { value: "quote", icon: QuotesIcon, label: "quote" },
+  { value: "zen", icon: MountainsIcon, label: "zen" },
 ] as const;
 
 export const pillEase = { duration: 0.2, ease: [0.23, 1, 0.32, 1] } as const;
