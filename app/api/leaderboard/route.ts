@@ -55,7 +55,7 @@ export async function GET() {
   const seen = new Set<string>();
   const unique: TestResultRow[] = [];
 
-  for (const row of (data || []) as TestResultRow[]) {
+  for (const row of (data || []) as unknown as TestResultRow[]) {
     if (seen.has(row.user_id)) continue;
     seen.add(row.user_id);
     unique.push(row);
