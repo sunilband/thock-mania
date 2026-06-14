@@ -61,9 +61,9 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     images: [
       {
-        url: "/og.jpeg",
-        width: 1500,
-        height: 1016,
+        url: "/og.webp",
+        width: 1353,
+        height: 861,
         alt: "Thock Mania — typing test with mechanical keyboard sounds, on-screen keyboard, and real-time WPM tracking",
       },
     ],
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     title: "Thock Mania — Typing Test with Mechanical Keyboard Sounds",
     description:
       "A satisfying typing test with realistic mechanical keyboard sounds. Track your WPM and accuracy in real-time.",
-    images: ["/og.jpeg"],
+    images: ["/og.webp"],
   },
   robots: {
     index: true,

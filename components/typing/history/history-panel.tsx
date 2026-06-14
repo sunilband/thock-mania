@@ -136,10 +136,10 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
               </div>
 
               <div className="mt-2 flex-1 space-y-0.5 overflow-y-auto">
-                {entries.map((entry) => (
+                {entries.map((entry, index) => (
                   <HistoryRow
                     entry={entry}
-                    key={`${entry.date}-${entry.wpm}`}
+                    key={`${entry.date}-${entry.wpm}-${index}`}
                   />
                 ))}
               </div>

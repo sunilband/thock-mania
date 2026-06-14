@@ -119,6 +119,14 @@ export function useTypingTest({
   const screenFadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetAnimRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finishTestRef = useRef<(() => void) | null>(null);
+  // Synchronous mirrors of `started`/`finished`. State updates are async, so a
+  // countdown interval (or a stray/orphaned one) could otherwise call
+  // finishTest after a reset and flip `finished` back to true with no
+  // keystrokes ("invalid result"), which also desyncs the page-level finished
+  // state. These refs let finishTest and the timer make authoritative,
+  // race-free decisions.
+  const startedRef = useRef(false);
+  const finishedRef = useRef(false);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const mtCounts = useMemo(
@@ -157,6 +165,12 @@ export function useTypingTest({
   // ── finishTest ───────────────────────────────────────────────────────────
   // Rule 3: all finish-related side effects run here, not in reactive effects.
   const finishTest = useCallback(() => {
+    // Only a started, not-yet-finished test can finish. This neutralizes stray
+    // or orphaned timer callbacks that fire after a reset/restart.
+    if (!startedRef.current || finishedRef.current) {
+      return;
+    }
+    finishedRef.current = true;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -202,6 +216,15 @@ export function useTypingTest({
   // immediately with the new value without waiting for state to commit.
   const resetTestWith = useCallback(
     async (overrides: ResetOverrides = {}) => {
+      // Neutralize any running/finished test synchronously before the async
+      // word build so an in-flight timer can't finish the test mid-reset.
+      startedRef.current = false;
+      finishedRef.current = false;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
       const m = overrides.mode ?? mode;
       const ql = overrides.quoteLength ?? quoteLength;
       const wo = overrides.wordOption ?? wordOption;
@@ -347,6 +370,32 @@ export function useTypingTest({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Clear every outstanding timer/interval on unmount so an unfinished session
+  // (e.g. the countdown is still running when the component is remounted via
+  // restartKey, or the user navigates away) can't keep firing setState on a
+  // dead component.
+  useEffect(
+    () => () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+      }
+      if (typingIdleRef.current) {
+        clearTimeout(typingIdleRef.current);
+      }
+      if (screenFadeRef.current) {
+        clearTimeout(screenFadeRef.current);
+      }
+      if (resetAnimRef.current) {
+        clearTimeout(resetAnimRef.current);
+      }
+    },
+    []
+  );
+
   // ── Helper callbacks ─────────────────────────────────────────────────────
   const markTypingActive = useCallback(() => {
     setIsActivelyTyping(true);
@@ -437,51 +486,91 @@ export function useTypingTest({
   // Start the test (and the countdown timer for "time" mode). Safe to call on
   // every keystroke — it no-ops once already started.
   const ensureStarted = useCallback(() => {
-    if (started) {
+    if (startedRef.current) {
       return;
     }
+    startedRef.current = true;
+    finishedRef.current = false;
     setStarted(true);
     setStartTime(Date.now());
     setShowControls(false);
     onTypingActiveChange?.(true);
 
+    // Never leave a previous interval running.
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     if (mode === "time") {
-      let elapsedTicks = 0;
-      timerRef.current = setInterval(() => {
-        elapsedTicks += 1;
-        elapsedSecondsRef.current = elapsedTicks;
-        const elapsedMin = elapsedTicks / 60;
-        const snapWpm =
-          elapsedMin > 0
-            ? Math.round(correctCharsRef.current / 5 / elapsedMin)
-            : 0;
-        const snapRaw =
-          elapsedMin > 0
-            ? Math.max(
-              Math.round(allTypedRef.current / 5 / elapsedMin),
-              snapWpm
-            )
-            : 0;
-        setWpmHistory((prev) => [
-          ...prev,
-          {
-            second: elapsedTicks,
-            wpm: snapWpm,
-            raw: snapRaw,
-            errors: errorsThisSecondRef.current,
-          },
-        ]);
-        errorsThisSecondRef.current = 0;
-        if (elapsedTicks >= timeOption) {
-          clearInterval(timerRef.current!);
-          timerRef.current = null;
+      // Drive the countdown from the wall clock rather than a tick counter.
+      // Browsers throttle (or pause) setInterval in background/inactive tabs,
+      // so a tick-based counter falls behind real time and the test can fail
+      // to end when the user starts a session and switches away. Computing
+      // elapsed time from the start timestamp stays accurate regardless of how
+      // often the interval actually fires, and we backfill any whole seconds
+      // skipped while the tab was throttled so the WPM chart stays continuous.
+      const startMs = Date.now();
+      let lastSecond = 0;
+      // Poll faster than once per second so the visible countdown stays smooth
+      // and catches up quickly when the tab regains focus.
+      const intervalId = setInterval(() => {
+        // Self-terminate if the test was reset/finished by another path so an
+        // orphaned interval can't keep firing or spuriously finish a new test.
+        if (finishedRef.current || !startedRef.current) {
+          clearInterval(intervalId);
+          if (timerRef.current === intervalId) {
+            timerRef.current = null;
+          }
+          return;
+        }
+
+        const elapsed = Math.min(
+          Math.floor((Date.now() - startMs) / 1000),
+          timeOption
+        );
+        elapsedSecondsRef.current = elapsed;
+
+        // Record one snapshot per newly completed second (handles gaps from
+        // background-tab throttling). Accumulated errors are attributed to the
+        // most recent second; backfilled gap seconds get zero.
+        for (let sec = lastSecond + 1; sec <= elapsed; sec++) {
+          const elapsedMin = sec / 60;
+          const snapWpm = Math.round(correctCharsRef.current / 5 / elapsedMin);
+          const snapRaw = Math.max(
+            Math.round(allTypedRef.current / 5 / elapsedMin),
+            snapWpm
+          );
+          const isLatest = sec === elapsed;
+          setWpmHistory((prev) => [
+            ...prev,
+            {
+              second: sec,
+              wpm: snapWpm,
+              raw: snapRaw,
+              errors: isLatest ? errorsThisSecondRef.current : 0,
+            },
+          ]);
+        }
+        if (elapsed > lastSecond) {
+          errorsThisSecondRef.current = 0;
+          lastSecond = elapsed;
+        }
+
+        if (elapsed >= timeOption) {
+          clearInterval(intervalId);
+          if (timerRef.current === intervalId) {
+            timerRef.current = null;
+          }
+          setTimeLeft(0);
           finishTestRef.current?.();
         } else {
-          setTimeLeft(timeOption - elapsedTicks);
+          setTimeLeft(timeOption - elapsed);
         }
-      }, 1000);
+      }, 250);
+      timerRef.current = intervalId;
     }
-  }, [started, mode, timeOption, onTypingActiveChange]);
+  }, [mode, timeOption, onTypingActiveChange]);
 
   // ── Core input processing (ref-driven so multiple chars in one input event
   // stay consistent before React commits state) ─────────────────────────────
@@ -850,6 +939,12 @@ export function useTypingTest({
 
   // Resets all typing state but keeps the current word list (for "restart same test").
   const resetSameWords = useCallback(() => {
+    startedRef.current = false;
+    finishedRef.current = false;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     setTyped("");
     setWordIndex(0);
     setStarted(false);
@@ -867,10 +962,6 @@ export function useTypingTest({
     correctedErrorsRef.current = 0;
     if (mode === "time") {
       setTimeLeft(timeOption);
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
     }
     setRowOffset(0);
     setShowControls(true);
