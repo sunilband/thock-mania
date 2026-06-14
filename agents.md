@@ -128,10 +128,12 @@ The site header contains (left to right):
 
 ## Leaderboard Rules
 
-- Shows global all-time top 50 scores
-- **One entry per user** — only their highest WPM is shown
-- Deduplication happens server-side (fetch top 500, deduplicate by `user_id`, take first 50)
+- Shows top 50 scores with period toggle: **Global** (default), **Weekly**, **Daily**
+- **One entry per user** — only their highest WPM within the selected period is shown
+- Deduplication happens server-side (fetch top 500 within date range, deduplicate by `user_id`, take first 50)
+- API accepts `?period=global|weekly|daily` query param
 - Displays: rank, avatar, display name, WPM, accuracy, mode, date
+- Period toggle uses `motion layoutId` animation for the active indicator
 
 ---
 

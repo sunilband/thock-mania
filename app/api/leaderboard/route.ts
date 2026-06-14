@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 interface TestResultRow {
@@ -18,13 +18,26 @@ interface TestResultRow {
   } | null;
 }
 
-// GET — fetch global leaderboard (top 50 all-time by WPM, one entry per user — their best)
-export async function GET() {
+// GET — fetch leaderboard with optional period filter (global | weekly | daily)
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
+  const { searchParams } = new URL(request.url);
+  const period = searchParams.get("period") ?? "global";
 
-  // Fetch top results ordered by WPM. We fetch more than 50 to account for
-  // duplicates, then deduplicate to one entry per user (their highest WPM).
-  const { data, error } = await supabase
+  // Build date filter for weekly/daily
+  let dateFilter: string | null = null;
+  const now = new Date();
+  if (period === "daily") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    dateFilter = start.toISOString();
+  } else if (period === "weekly") {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 7);
+    dateFilter = start.toISOString();
+  }
+
+  let query = supabase
     .from("test_results")
     .select(
       `
@@ -46,6 +59,12 @@ export async function GET() {
     )
     .order("wpm", { ascending: false })
     .limit(500);
+
+  if (dateFilter) {
+    query = query.gte("created_at", dateFilter);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ entries: [] }, { status: 500 });

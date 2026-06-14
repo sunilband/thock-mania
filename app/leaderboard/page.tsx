@@ -52,16 +52,18 @@ function getRankClass(rank: number) {
 export default function LeaderboardPage() {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [period, setPeriod] = useState<"global" | "weekly" | "daily">("global");
 
     useEffect(() => {
-        fetch("/api/leaderboard")
+        setLoading(true);
+        fetch(`/api/leaderboard?period=${period}`)
             .then((res) => res.json())
             .then((data) => {
                 setEntries(data.entries ?? []);
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, []);
+    }, [period]);
 
     return (
         <div className="flex flex-1 flex-col items-center px-4 py-8 md:px-10">
@@ -72,13 +74,43 @@ export default function LeaderboardPage() {
                 transition={{ duration: 0.5, ease }}
             >
                 {/* Header */}
-                <div className="mb-8 flex items-center gap-3">
-                    <TrophyIcon className="text-primary" size={28} weight="duotone" />
-                    <div>
-                        <h1 className="font-bold text-2xl text-foreground">Leaderboard</h1>
-                        <p className="text-muted-foreground text-sm">
-                            Global all-time top scores
-                        </p>
+                <div className="mb-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <TrophyIcon className="text-primary" size={28} weight="duotone" />
+                        <div>
+                            <h1 className="font-bold text-2xl text-foreground">Leaderboard</h1>
+                            <p className="text-muted-foreground text-sm">
+                                {period === "global" && "All-time top scores"}
+                                {period === "weekly" && "Best scores this week"}
+                                {period === "daily" && "Best scores today"}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Period toggle */}
+                    <div className="flex rounded-full border border-foreground/10 bg-foreground/[0.03] p-1">
+                        {(["global", "weekly", "daily"] as const).map((p) => (
+                            <button
+                                className={cn(
+                                    "relative rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                                    period === p
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground/70"
+                                )}
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                type="button"
+                            >
+                                {period === p && (
+                                    <motion.div
+                                        className="absolute inset-0 rounded-full bg-foreground/[0.08]"
+                                        layoutId="periodToggle"
+                                        transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                                    />
+                                )}
+                                <span className="relative z-10 capitalize">{p}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
 
