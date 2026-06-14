@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "@phosphor-icons/react";
+import { MonitorIcon, MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -8,17 +8,17 @@ import { cn } from "@/lib/utils";
 const themes = [
   {
     key: "system",
-    icon: Monitor,
+    icon: MonitorIcon,
     label: "System theme",
   },
   {
     key: "light",
-    icon: Sun,
+    icon: SunIcon,
     label: "Light theme",
   },
   {
     key: "dark",
-    icon: Moon,
+    icon: MoonIcon,
     label: "Dark theme",
   },
 ];

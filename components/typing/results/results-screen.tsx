@@ -1,12 +1,13 @@
 "use client";
 
 import {
-  ArrowCounterClockwise,
-  ArrowRight,
-  Trophy,
+  ArrowCounterClockwiseIcon,
+  ArrowRightIcon,
+  TrophyIcon,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Confetti, type ConfettiRef } from "@/components/ui/confetti";
 import { saveIfPersonalBest } from "@/lib/personal-best";
@@ -52,6 +53,7 @@ export function ResultsScreen({
 
   const confettiRef = useRef<ConfettiRef>(null);
   const invalid = isInvalidTestResult(stats);
+  const { user } = useAuth();
 
   const pb = useMemo(
     () =>
@@ -61,6 +63,7 @@ export function ResultsScreen({
   );
 
   // Log every valid run to local history exactly once when results mount.
+  // Also save to DB if user is authenticated.
   useMemo(() => {
     if (invalid) {
       return;
@@ -74,6 +77,29 @@ export function ResultsScreen({
       modeDetail,
       date: new Date().toISOString(),
     });
+
+    // Save to database if authenticated
+    if (user) {
+      fetch("/api/test-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wpm,
+          raw,
+          accuracy,
+          consistency,
+          mode,
+          modeDetail,
+          elapsedSeconds,
+          correctChars,
+          incorrectChars,
+          extraChars,
+          missedChars,
+        }),
+      }).catch(() => {
+        // Silently fail — localStorage is the fallback
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,12 +142,12 @@ export function ResultsScreen({
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-border border-t pt-6 pb-2">
           <ResultsActionButton
-            icon={<ArrowRight aria-hidden size={16} />}
+            icon={<ArrowRightIcon aria-hidden size={16} />}
             label="next test"
             onClick={onNext}
           />
           <ResultsActionButton
-            icon={<ArrowCounterClockwise aria-hidden size={16} />}
+            icon={<ArrowCounterClockwiseIcon aria-hidden size={16} />}
             label="restart"
             onClick={onRestart}
             spinOnClick
@@ -202,7 +228,7 @@ export function ResultsScreen({
           }}
         >
           <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1">
-            <Trophy className="text-primary" size={13} weight="duotone" />
+            <TrophyIcon className="text-primary" size={13} weight="duotone" />
             <span className="font-medium text-[11px] text-primary">
               new personal best
             </span>
@@ -304,13 +330,13 @@ export function ResultsScreen({
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pb-2">
         {[
           <ResultsActionButton
-            icon={<ArrowRight aria-hidden size={16} />}
+            icon={<ArrowRightIcon aria-hidden size={16} />}
             key="next"
             label="next test"
             onClick={onNext}
           />,
           <ResultsActionButton
-            icon={<ArrowCounterClockwise aria-hidden size={16} />}
+            icon={<ArrowCounterClockwiseIcon aria-hidden size={16} />}
             key="restart"
             label="restart"
             onClick={onRestart}

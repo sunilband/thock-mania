@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { IconChevronDown, IconKeyboard } from "@tabler/icons-react";
 import { useState } from "react";
 import {
@@ -82,7 +82,7 @@ export function KeyboardSizeDropdown() {
                                 </span>
                             </span>
                             {isActive && (
-                                <Check
+                                <CheckIcon
                                     className="mt-0.5 shrink-0 text-primary"
                                     size={14}
                                     weight="duotone"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { THEME_OPTIONS } from "@/components/settings/settings-provider";
 import type { KeyboardThemeName } from "@/components/ui/keyboard";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,7 @@ export function ThemeGrid({
               >
                 {t.label}
               </span>
-              {selected && <Check className="text-primary" size={14} />}
+              {selected && <CheckIcon className="text-primary" size={14} />}
             </div>
           </button>
         );
