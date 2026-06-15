@@ -1,13 +1,11 @@
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
-
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.1.8'],
   turbopack: {},
   reactStrictMode: true,
-  reactCompiler: isProd,
+  reactCompiler: true,
 
   images: {
     remotePatterns: [
@@ -27,7 +25,6 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    inlineCss: isProd,
     optimizePackageImports: [
       "@phosphor-icons/react",
       "motion",
@@ -35,7 +32,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  ...(isProd && {
+  ...(true && {
     compiler: {
       removeConsole: {
         exclude: ["error"],

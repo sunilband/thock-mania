@@ -3,6 +3,7 @@ import {
     generateAnonAvatarUrl,
     generateAnonName,
 } from "@/lib/anonymous-identity";
+import { ANON_UID_COOKIE } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ResolvedUser {
@@ -46,7 +47,7 @@ export async function resolveUser(): Promise<ResolvedUser | null> {
 
     // Fall back to anonymous UID from cookie
     const cookieStore = await cookies();
-    const anonUid = cookieStore.get("kz-anon-uid")?.value;
+    const anonUid = cookieStore.get(ANON_UID_COOKIE)?.value;
 
     if (!anonUid) {
         return null;

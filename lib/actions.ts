@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { ANON_UID_COOKIE } from "@/lib/constants";
 import { resolveUser } from "@/lib/supabase/resolve-user";
 import { createClient } from "@/lib/supabase/server";
 
@@ -78,7 +79,7 @@ export async function migrateAnonymousData() {
     if (!user) return { success: false };
 
     const cookieStore = await cookies();
-    const anonUid = cookieStore.get("kz-anon-uid")?.value;
+    const anonUid = cookieStore.get(ANON_UID_COOKIE)?.value;
     if (!anonUid) return { success: true }; // Nothing to migrate
 
     const { error } = await supabase.rpc("migrate_anonymous_to_user", {

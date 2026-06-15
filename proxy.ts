@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { ANON_UID_COOKIE } from "@/lib/constants";
 
-const ANON_COOKIE = "kz-anon-uid";
 const TWO_YEARS = 60 * 60 * 24 * 365 * 2;
 
 export async function proxy(request: NextRequest) {
@@ -9,9 +9,9 @@ export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
 
   // Ensure anonymous UID cookie exists on every visitor
-  if (!request.cookies.get(ANON_COOKIE)) {
+  if (!request.cookies.get(ANON_UID_COOKIE)) {
     const uid = crypto.randomUUID();
-    response.cookies.set(ANON_COOKIE, uid, {
+    response.cookies.set(ANON_UID_COOKIE, uid, {
       path: "/",
       maxAge: TWO_YEARS,
       sameSite: "lax",

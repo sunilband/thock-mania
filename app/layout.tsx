@@ -8,6 +8,7 @@ import {
   generateAnonAvatarUrl,
   generateAnonName,
 } from "@/lib/anonymous-identity";
+import { ANON_UID_COOKIE } from "@/lib/constants";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -123,7 +124,7 @@ export default async function RootLayout({
 }>) {
   // Read anonymous UID from cookie (set by middleware) and resolve identity server-side
   const cookieStore = await cookies();
-  const anonUid = cookieStore.get("kz-anon-uid")?.value ?? "";
+  const anonUid = cookieStore.get(ANON_UID_COOKIE)?.value ?? "";
   const anonDisplayName = anonUid ? generateAnonName(anonUid) : "Anonymous";
   const anonAvatarUrl = anonUid ? generateAnonAvatarUrl(anonUid) : "";
 
