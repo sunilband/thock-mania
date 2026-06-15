@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { ANON_UID_COOKIE } from "@/lib/constants";
 import { resolveUser } from "@/lib/supabase/resolve-user";
@@ -41,6 +42,10 @@ export async function saveTestResult(input: SaveTestResultInput) {
     });
 
     if (error) return { success: false, error: error.message };
+
+    // Invalidate leaderboard cache so the new score appears immediately
+    revalidateTag("leaderboard", { expire: 0 });
+
     return { success: true };
 }
 
@@ -88,6 +93,10 @@ export async function migrateAnonymousData() {
     });
 
     if (error) return { success: false, error: error.message };
+
+    // Invalidate leaderboard since user IDs changed for migrated scores
+    revalidateTag("leaderboard", { expire: 0 });
+
     return { success: true };
 }
 
@@ -123,5 +132,9 @@ export async function incrementVisitorCount() {
     const supabase = createPublicClient();
     const { data, error } = await supabase.rpc("increment_visitor_count");
     if (error) return 0;
+
+    // Invalidate visitor count cache so subsequent reads get the new value
+    revalidateTag("visitor-count", { expire: 0 });
+
     return (data as number) ?? 0;
 }

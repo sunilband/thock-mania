@@ -1,112 +1,39 @@
-"use client";
+import { Suspense } from "react";
+import { TypingPageShell } from "./typing-page-shell";
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import { useAppChrome } from "@/components/layout/app-chrome";
-import { useSettings } from "@/components/settings/settings-provider";
-import { TypingTest } from "@/components/typing/typing-test";
-import { cn } from "@/lib/utils";
-
-const Keyboard = dynamic(
-  () => import("@/components/ui/keyboard").then((mod) => mod.Keyboard),
-  {
-    ssr: false,
-    loading: () => <div className="h-[265px] w-[860px] animate-pulse rounded-2xl bg-foreground/[0.03]" />,
-  }
-);
-
-export default function Page() {
-  const { settingsOpen, setTypingActive, homeLogoHandlerRef } = useAppChrome();
-  const [isFinished, setIsFinished] = useState(false);
-  const [typingFocused, setTypingFocused] = useState(true);
-  const [restartKey, setRestartKey] = useState(0);
-  const { showKeyboard, soundEnabled, soundVolume, accent, keyboardSize } =
-    useSettings();
-
-  useEffect(() => {
-    homeLogoHandlerRef.current = () => {
-      setIsFinished(false);
-      setRestartKey((k) => k + 1);
-    };
-    return () => {
-      homeLogoHandlerRef.current = null;
-    };
-  }, [homeLogoHandlerRef]);
-
-  const handleTypingActiveChange = useCallback(
-    (active: boolean) => {
-      setTypingActive(active);
-    },
-    [setTypingActive]
-  );
-
-  const handleKeyHighlight = useCallback((_key: string | null) => {
-    /* no-op */
-  }, []);
-
+function TypingPageFallback() {
   return (
     <div className="flex flex-1 flex-col">
-      <main
-        className={cn(
-          "flex flex-col px-6",
-          isFinished
-            ? "flex-1 justify-center px-10 py-2"
-            : "flex-1 items-center justify-center"
-        )}
-      >
-        <TypingTest
-          key={restartKey}
-          onFinished={setIsFinished}
-          onFocusChange={setTypingFocused}
-          onKeyHighlight={handleKeyHighlight}
-          onTypingActiveChange={handleTypingActiveChange}
-          pauseTypingInputRefocus={settingsOpen}
-        />
-      </main>
-
-      {!isFinished && (
-        <footer
-          className={cn(
-            "hidden items-center justify-center lg:flex",
-            showKeyboard
-              ? "flex-col pb-4"
-              : "invisible h-0 overflow-hidden border-0"
-          )}
-        >
-          <div className="scale-[0.85]">
-            <Keyboard
-              enableHaptics
-              enableSound={soundEnabled}
-              forceActive={soundEnabled && !showKeyboard}
-              physicalKeysEnabled={typingFocused}
-              size={keyboardSize}
-              theme={accent}
-              volume={soundVolume}
-            />
+      <main className="flex flex-1 flex-col items-center justify-center px-6">
+        <div className="flex w-full max-w-5xl flex-col items-center gap-3">
+          {/* Toolbar shimmer */}
+          <div className="h-11 w-full max-w-2xl animate-pulse rounded-full bg-foreground/[0.03]" />
+          {/* Words area shimmer */}
+          <div className="flex w-full flex-wrap gap-x-3 gap-y-2 mt-12 h-[7.8rem] overflow-hidden">
+            {[72, 48, 56, 80, 40, 64, 52, 88, 44, 72, 60, 48, 76, 56, 68, 40, 84, 52, 64, 48, 72, 56, 44, 80, 60, 68, 52, 76].map((w, i) => (
+              <div
+                key={`s-${w}-${i}`}
+                className="h-8 animate-pulse rounded bg-foreground/[0.05]"
+                style={{ width: `${w}px` }}
+              />
+            ))}
           </div>
-          <p className="text-muted-foreground/40 text-xs">
-            Built by{" "}
-            <a
-              className="text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
-              href="https://www.sunilband.com"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Sunil Band
-            </a>
-            . ⭐ Enjoying the thocks? Give the repo a star on{" "}
-            <a
-              className="text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
-              href="https://github.com/sunilband/thock-mania"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              GitHub
-            </a>
-            .
-          </p>
-        </footer>
-      )}
+        </div>
+      </main>
+      {/* Keyboard shimmer */}
+      <footer className="hidden items-center justify-center lg:flex flex-col pb-4">
+        <div className="scale-[0.85]">
+          <div className="h-[265px] w-[860px] animate-pulse rounded-2xl bg-foreground/[0.03]" />
+        </div>
+      </footer>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<TypingPageFallback />}>
+      <TypingPageShell />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use cache";
 
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 
 interface TestResultRow {
@@ -39,7 +39,8 @@ export async function getLeaderboardData(
     period: "global" | "weekly" | "daily" = "global",
     mode?: string
 ): Promise<LeaderboardEntry[]> {
-    cacheLife("minutes");
+    cacheTag("leaderboard", `leaderboard-${period}`, mode ? `leaderboard-${mode}` : "leaderboard-all");
+    cacheLife("max");
 
     const supabase = createPublicClient();
 
