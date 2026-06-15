@@ -8,6 +8,7 @@ import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -153,6 +154,7 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
       </body>
+          <GoogleAnalytics gaId="G-SQJJCVP529" />
     </html>
   );
 }
