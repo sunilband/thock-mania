@@ -1,6 +1,10 @@
 "use client";
 
-import { ClockCounterClockwiseIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import {
+  ClockCounterClockwiseIcon,
+  GoogleLogoIcon,
+  SignOutIcon,
+} from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +13,8 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 export function UserMenu() {
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, loading, signInWithGoogle, signOut, displayName, avatarUrl } =
+    useAuth();
   const { setHistoryOpen } = useAppChrome();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -32,25 +37,6 @@ export function UserMenu() {
     );
   }
 
-  if (!user) {
-    return (
-      <motion.button
-        className="flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-        onClick={signInWithGoogle}
-        type="button"
-        whileTap={{ scale: 0.97 }}
-      >
-        <UserIcon size={15} weight="duotone" />
-        <span className="hidden sm:inline">Sign in</span>
-      </motion.button>
-    );
-  }
-
-  const avatarUrl =
-    user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
-  const displayName =
-    user.user_metadata?.full_name ?? user.user_metadata?.name ?? "UserIcon";
-
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -64,6 +50,7 @@ export function UserMenu() {
             className="rounded-full"
             height={26}
             src={avatarUrl}
+            unoptimized
             width={26}
           />
         ) : (
@@ -88,7 +75,7 @@ export function UserMenu() {
               {displayName}
             </p>
             <p className="truncate text-[10px] text-muted-foreground/60">
-              {user.email}
+              {user ? user.email : "Anonymous · scores still count!"}
             </p>
           </div>
 
@@ -107,20 +94,37 @@ export function UserMenu() {
             History
           </button>
 
-          <button
-            className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground transition-colors",
-              "hover:bg-foreground/[0.05] hover:text-destructive"
-            )}
-            onClick={() => {
-              signOut();
-              setMenuOpen(false);
-            }}
-            type="button"
-          >
-            <SignOutIcon size={14} weight="duotone" />
-            Sign out
-          </button>
+          {user ? (
+            <button
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground transition-colors",
+                "hover:bg-foreground/[0.05] hover:text-destructive"
+              )}
+              onClick={() => {
+                signOut();
+                setMenuOpen(false);
+              }}
+              type="button"
+            >
+              <SignOutIcon size={14} weight="duotone" />
+              Sign out
+            </button>
+          ) : (
+            <button
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground transition-colors",
+                "hover:bg-foreground/[0.05] hover:text-foreground"
+              )}
+              onClick={() => {
+                signInWithGoogle();
+                setMenuOpen(false);
+              }}
+              type="button"
+            >
+              <GoogleLogoIcon size={14} weight="duotone" />
+              Sign in with Google
+            </button>
+          )}
         </motion.div>
       )}
     </div>

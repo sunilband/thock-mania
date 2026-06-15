@@ -1,22 +1,27 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-// POST — save a test result for the logged-in user
+// POST — save a test result for logged-in user OR anonymous user (via profileId)
 export async function POST(request: Request) {
   const supabase = await createClient();
+  const body = await request.json();
 
+  // Determine user_id: logged-in user takes priority, else use provided profileId
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = user?.id ?? body.profileId;
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "No user or profileId provided" },
+      { status: 401 }
+    );
   }
 
-  const body = await request.json();
-
   const { error } = await supabase.from("test_results").insert({
-    user_id: user.id,
+    user_id: userId,
     wpm: body.wpm,
     raw: body.raw,
     accuracy: body.accuracy,
@@ -37,22 +42,30 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true });
 }
 
-// GET — fetch user's own history
-export async function GET() {
+// GET — fetch user's own history (logged-in or anonymous via query param)
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
+  const { searchParams } = new URL(request.url);
+  const profileId = searchParams.get("profileId");
 
+  // Logged-in user takes priority
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = user?.id ?? profileId;
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "No user or profileId provided" },
+      { status: 401 }
+    );
   }
 
   const { data, error } = await supabase
     .from("test_results")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
 

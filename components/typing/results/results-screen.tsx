@@ -53,7 +53,7 @@ export function ResultsScreen({
 
   const confettiRef = useRef<ConfettiRef>(null);
   const invalid = isInvalidTestResult(stats);
-  const { user } = useAuth();
+  const { user, anonProfileId } = useAuth();
 
   const pb = useMemo(
     () =>
@@ -78,8 +78,9 @@ export function ResultsScreen({
       date: new Date().toISOString(),
     });
 
-    // Save to database if authenticated
-    if (user) {
+    // Save to database — works for both logged-in and anonymous users
+    const profileId = user ? undefined : anonProfileId;
+    if (user || profileId) {
       fetch("/api/test-results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,6 +96,7 @@ export function ResultsScreen({
           incorrectChars,
           extraChars,
           missedChars,
+          profileId,
         }),
       }).catch(() => {
         // Silently fail — localStorage is the fallback

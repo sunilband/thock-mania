@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
-   allowedDevOrigins: ['192.168.1.8'],
+  allowedDevOrigins: ['192.168.1.8'],
   turbopack: {},
   reactStrictMode: true,
   reactCompiler: isProd,
@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "*.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
       },
     ],
   },

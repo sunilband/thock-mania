@@ -194,6 +194,7 @@ function LeaderboardContent({
                                 className="shrink-0 rounded-full"
                                 height={28}
                                 src={entry.avatarUrl}
+                                unoptimized
                                 width={28}
                             />
                         ) : (

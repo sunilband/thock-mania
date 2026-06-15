@@ -59,17 +59,23 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
     bestWpm: 0,
     count: 0,
   });
-  const { user } = useAuth();
+  const { user, anonProfileId } = useAuth();
 
   // Re-read history whenever the panel opens so it reflects the latest runs.
-  // If user is logged in, fetch from DB; otherwise, use localStorage.
+  // Fetch from DB for both logged-in and anonymous users; fallback to localStorage.
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    if (user) {
-      fetch("/api/test-results")
+    const profileId = user ? undefined : anonProfileId;
+    const hasDbAccess = user || profileId;
+
+    if (hasDbAccess) {
+      const url = profileId
+        ? `/api/test-results?profileId=${profileId}`
+        : "/api/test-results";
+      fetch(url)
         .then((res) => res.json())
         .then((data) => {
           if (data.entries) {

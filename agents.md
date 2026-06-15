@@ -89,7 +89,15 @@ The site header contains (left to right):
 - **Flow**: `signInWithGoogle()` → OAuth redirect → `/auth/callback` → session
 - **Middleware**: Refreshes session cookies on every non-static request
 - **Profile creation**: Postgres trigger auto-inserts `profiles` row on sign-up (display_name + avatar_url from Google metadata)
-- **Client access**: `useAuth()` hook provides `user`, `loading`, `signInWithGoogle`, `signOut`
+- **Client access**: `useAuth()` hook provides `user`, `loading`, `signInWithGoogle`, `signOut`, `anonProfileId`, `displayName`, `avatarUrl`
+
+### Anonymous Users
+- Every visitor gets a persistent anonymous UID stored in `localStorage` (`kz-anon-uid`)
+- An anonymous profile is created in the DB on first visit (`is_anonymous = true`, `anonymous_uid` set)
+- Anonymous users get a deterministic display name (via `unique-names-generator`) and avatar (via DiceBear shapes API)
+- Anonymous users' results are saved to the DB and appear on the leaderboard
+- When an anonymous user signs in with Google, their data is migrated via `migrate_anonymous_to_user()` RPC — all test results transfer to the authenticated profile and the anonymous profile is deleted
+- The user menu always shows the avatar pill (anonymous or logged in); anonymous users see "Sign in with Google" inside the dropdown
 
 ---
 
@@ -153,7 +161,7 @@ The site header contains (left to right):
 3. If **valid**:
    - Always saves to localStorage (`addTestToHistory()`, max 100 entries)
    - Always checks personal best (`saveIfPersonalBest()`)
-   - If **authenticated**: fire-and-forget POST to `/api/test-results`
+   - Saves to DB for **all users** (logged-in uses `user.id`, anonymous uses `anonProfileId`)
 4. If **invalid**: shows "invalid result" screen, no data saved
 
 ---
