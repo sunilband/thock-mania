@@ -154,7 +154,7 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
       </body>
-          <GoogleAnalytics gaId="G-SQJJCVP529" />
+      <GoogleAnalytics gaId="G-SQJJCVP529" />
     </html>
   );
 }
