@@ -10,4 +10,8 @@ export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
     createSerwistRoute({
         additionalPrecacheEntries: [{ url: "/", revision }],
         swSrc: "app/sw.ts",
+        // Use platform-independent `esbuild-wasm` everywhere. The native
+        // `esbuild` package needs per-platform binaries, which can be missing
+        // on Vercel (Linux) when the lockfile is generated on Windows.
+        useNativeEsbuild: false,
     });
