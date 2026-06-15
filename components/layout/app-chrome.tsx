@@ -6,6 +6,7 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -20,11 +21,25 @@ import {
 import { UserMenu } from "@/components/auth/user-menu";
 import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
 import { VisitorCount } from "@/components/layout/visitor-count";
-import { SettingsPanel } from "@/components/settings/settings-panel";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
 import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
-import { HistoryPanel } from "@/components/typing/history/history-panel";
+
+const SettingsPanel = dynamic(
+  () =>
+    import("@/components/settings/settings-panel").then(
+      (mod) => mod.SettingsPanel
+    ),
+  { ssr: false }
+);
+
+const HistoryPanel = dynamic(
+  () =>
+    import("@/components/typing/history/history-panel").then(
+      (mod) => mod.HistoryPanel
+    ),
+  { ssr: false }
+);
 
 interface AppChromeContextValue {
   homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
@@ -49,6 +64,8 @@ export function useAppChrome() {
 export function AppChrome({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [typingActive, setTypingActive] = useState(false);
   const homeLogoHandlerRef = useRef<(() => void) | null>(null);
 
@@ -65,10 +82,12 @@ export function AppChrome({ children }: { children: ReactNode }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
+        setSettingsLoaded(true);
         setSettingsOpen((prev) => !prev);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "h") {
         e.preventDefault();
+        setHistoryLoaded(true);
         setHistoryOpen((prev) => !prev);
       }
     };
@@ -76,17 +95,28 @@ export function AppChrome({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Track when panels should mount (once opened, stay mounted)
+  const handleSettingsOpen = useCallback((open: boolean) => {
+    if (open) setSettingsLoaded(true);
+    setSettingsOpen(open);
+  }, []);
+
+  const handleHistoryOpen = useCallback((open: boolean) => {
+    if (open) setHistoryLoaded(true);
+    setHistoryOpen(open);
+  }, []);
+
   const value = useMemo(
     () => ({
       settingsOpen,
-      setSettingsOpen,
+      setSettingsOpen: handleSettingsOpen,
       historyOpen,
-      setHistoryOpen,
+      setHistoryOpen: handleHistoryOpen,
       typingActive,
       setTypingActive,
       homeLogoHandlerRef,
     }),
-    [settingsOpen, historyOpen, typingActive]
+    [settingsOpen, historyOpen, typingActive, handleSettingsOpen, handleHistoryOpen]
   );
 
   return (
@@ -96,8 +126,12 @@ export function AppChrome({ children }: { children: ReactNode }) {
         <SiteHeader />
         {children}
       </div>
-      <SettingsPanel onOpenChange={setSettingsOpen} open={settingsOpen} />
-      <HistoryPanel onOpenChange={setHistoryOpen} open={historyOpen} />
+      {settingsLoaded && (
+        <SettingsPanel onOpenChange={handleSettingsOpen} open={settingsOpen} />
+      )}
+      {historyLoaded && (
+        <HistoryPanel onOpenChange={handleHistoryOpen} open={historyOpen} />
+      )}
     </AppChromeContext.Provider>
   );
 }

@@ -2,6 +2,7 @@
 
 import NumberFlow from "@number-flow/react";
 import { useEffect, useState } from "react";
+import { fetchVisitorCount, incrementVisitorCount } from "@/lib/actions";
 
 const VISITED_KEY = "kz-visited";
 
@@ -12,19 +13,17 @@ export function VisitorCount() {
     const hasVisited = sessionStorage.getItem(VISITED_KEY);
 
     if (hasVisited) {
-      // Already counted this session — just fetch current count
-      fetch("/api/visitor-count")
-        .then((res) => res.json())
-        .then((data) => setCount(data.count))
+      // Already counted this session — just fetch current count via server action
+      fetchVisitorCount()
+        .then((c) => setCount(c))
         .catch(() => {
           /* network error — ignore silently */
         });
     } else {
-      // First visit this session — increment
-      fetch("/api/visitor-count", { method: "POST" })
-        .then((res) => res.json())
-        .then((data) => {
-          setCount(data.count);
+      // First visit this session — increment via server action
+      incrementVisitorCount()
+        .then((c) => {
+          setCount(c);
           sessionStorage.setItem(VISITED_KEY, "1");
         })
         .catch(() => {

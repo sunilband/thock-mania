@@ -41,6 +41,7 @@ export function UserMenu() {
           <img
             alt={displayName}
             className="h-[26px] w-[26px] rounded-full object-cover"
+            referrerPolicy="no-referrer"
             src={avatarUrl}
           />
         ) : (

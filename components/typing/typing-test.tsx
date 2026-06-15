@@ -2,13 +2,19 @@
 
 import { ArrowsCounterClockwiseIcon, CursorIcon } from "@phosphor-icons/react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "@/components/settings/settings-provider";
-import { ResultsScreen } from "@/components/typing/results";
 import { TestControls } from "@/components/typing/test-controls";
 import { WordItem } from "@/components/typing/word-item";
 import { useTypingTest } from "@/hooks/use-typing-test";
 import { cn } from "@/lib/utils";
+
+const ResultsScreen = dynamic(
+  () =>
+    import("@/components/typing/results").then((mod) => mod.ResultsScreen),
+  { ssr: false }
+);
 
 interface TypingTestProps {
   onFinished?: (finished: boolean) => void;

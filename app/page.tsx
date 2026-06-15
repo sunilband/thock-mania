@@ -1,11 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { useAppChrome } from "@/components/layout/app-chrome";
 import { useSettings } from "@/components/settings/settings-provider";
 import { TypingTest } from "@/components/typing/typing-test";
-import { Keyboard } from "@/components/ui/keyboard";
 import { cn } from "@/lib/utils";
+
+const Keyboard = dynamic(
+  () => import("@/components/ui/keyboard").then((mod) => mod.Keyboard),
+  {
+    ssr: false,
+    loading: () => <div className="h-[265px] w-[860px] animate-pulse rounded-2xl bg-foreground/[0.03]" />,
+  }
+);
 
 export default function Page() {
   const { settingsOpen, setTypingActive, homeLogoHandlerRef } = useAppChrome();

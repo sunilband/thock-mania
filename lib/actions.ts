@@ -100,3 +100,28 @@ export async function getResolvedIdentity() {
         isAnonymous: resolved.isAnonymous,
     };
 }
+
+// --- Leaderboard (delegates to cached layer) ---
+
+export async function fetchLeaderboard(
+    period: "global" | "weekly" | "daily" = "global",
+    mode?: string
+) {
+    const { getLeaderboardData } = await import("@/lib/leaderboard");
+    return getLeaderboardData(period, mode);
+}
+
+// --- Visitor count ---
+
+export async function fetchVisitorCount() {
+    const { getVisitorCount } = await import("@/lib/visitor-count");
+    return getVisitorCount();
+}
+
+export async function incrementVisitorCount() {
+    const { createPublicClient } = await import("@/lib/supabase/public");
+    const supabase = createPublicClient();
+    const { data, error } = await supabase.rpc("increment_visitor_count");
+    if (error) return 0;
+    return (data as number) ?? 0;
+}

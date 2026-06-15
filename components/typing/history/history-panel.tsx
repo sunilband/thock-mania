@@ -54,6 +54,7 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const swipe = isMobile ? "down" : "right";
   const [entries, setEntries] = useState<TestHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<HistorySummary>({
     averageAccuracy: 0,
     averageWpm: 0,
@@ -67,6 +68,8 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
     if (!open) {
       return;
     }
+
+    setLoading(true);
 
     getTestHistoryAction()
       .then((dbEntries) => {
@@ -84,7 +87,8 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
         const data = getTestHistory();
         setEntries(data);
         setSummary(summarizeHistory(data));
-      });
+      })
+      .finally(() => setLoading(false));
   }, [open, user]);
 
   const popupClass = cn(
@@ -114,7 +118,28 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
             </DrawerClose>
           </div>
 
-          {entries.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-1 flex-col gap-2 mt-6">
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    className="h-[72px] animate-pulse rounded-xl bg-foreground/[0.03]"
+                    // biome-ignore lint: skeleton items
+                    key={i}
+                  />
+                ))}
+              </div>
+              <div className="mt-4 flex flex-col gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    className="h-12 animate-pulse rounded-lg bg-foreground/[0.03]"
+                    // biome-ignore lint: skeleton items
+                    key={i}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : entries.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <ChartLineUpIcon
                 className="text-muted-foreground/30"
