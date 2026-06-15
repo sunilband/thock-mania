@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppChrome } from "@/components/layout/app-chrome";
 import { useSettings } from "@/components/settings/settings-provider";
 import { TypingTest } from "@/components/typing/typing-test";

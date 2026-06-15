@@ -55,7 +55,7 @@ export function LeaderboardClient({
         }
 
         startTransition(async () => {
-            const data = await fetchLeaderboard(period, mode !== "all" ? mode : undefined);
+            const data = await fetchLeaderboard(period, mode);
             setEntries(data);
         });
     }, [period, mode, initialEntries]);

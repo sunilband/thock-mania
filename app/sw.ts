@@ -1,19 +1,21 @@
-import { defaultCache } from "@serwist/next/worker";
-import { type PrecacheEntry, Serwist } from "serwist";
+/// <reference lib="esnext" />
+/// <reference lib="webworker" />
+import { defaultCache } from "@serwist/turbopack/worker";
+import { type PrecacheEntry, type SerwistGlobalConfig, Serwist } from "serwist";
 
 declare global {
-  interface WorkerGlobalScope {
+  interface WorkerGlobalScope extends SerwistGlobalConfig {
     __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
   }
 }
 
-declare const self: WorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope;
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: false,
+  navigationPreload: true,
   runtimeCaching: defaultCache,
 });
 

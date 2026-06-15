@@ -3,8 +3,11 @@
 import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { ANON_UID_COOKIE } from "@/lib/constants";
+import { getLeaderboardData } from "@/lib/leaderboard";
+import { createPublicClient } from "@/lib/supabase/public";
 import { resolveUser } from "@/lib/supabase/resolve-user";
 import { createClient } from "@/lib/supabase/server";
+import { getVisitorCount } from "@/lib/visitor-count";
 
 export interface SaveTestResultInput {
     accuracy: number;
@@ -114,21 +117,18 @@ export async function getResolvedIdentity() {
 
 export async function fetchLeaderboard(
     period: "global" | "weekly" | "daily" = "global",
-    mode?: string
+    mode: string = "all"
 ) {
-    const { getLeaderboardData } = await import("@/lib/leaderboard");
     return getLeaderboardData(period, mode);
 }
 
 // --- Visitor count ---
 
 export async function fetchVisitorCount() {
-    const { getVisitorCount } = await import("@/lib/visitor-count");
     return getVisitorCount();
 }
 
 export async function incrementVisitorCount() {
-    const { createPublicClient } = await import("@/lib/supabase/public");
     const supabase = createPublicClient();
     const { data, error } = await supabase.rpc("increment_visitor_count");
     if (error) return 0;

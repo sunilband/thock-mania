@@ -12,6 +12,7 @@ import { getIdentityData } from "@/lib/get-identity";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { GoogleAnalytics } from '@next/third-parties/google'
+import { SerwistProvider } from "@serwist/turbopack/react";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -152,17 +153,23 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>
-          <Suspense>
-            <IdentityProvider identityPromise={identityPromise}>
-              <AuthProvider>
-                <SettingsProvider>
-                  <AppChrome>{children}</AppChrome>
-                </SettingsProvider>
-              </AuthProvider>
-            </IdentityProvider>
-          </Suspense>
-        </ThemeProvider>
+        <SerwistProvider
+          disable={process.env.NODE_ENV !== "production"}
+          reloadOnOnline
+          swUrl="/serwist/sw.js"
+        >
+          <ThemeProvider>
+            <Suspense>
+              <IdentityProvider identityPromise={identityPromise}>
+                <AuthProvider>
+                  <SettingsProvider>
+                    <AppChrome>{children}</AppChrome>
+                  </SettingsProvider>
+                </AuthProvider>
+              </IdentityProvider>
+            </Suspense>
+          </ThemeProvider>
+        </SerwistProvider>
       </body>
       <GoogleAnalytics gaId={process.env.GTAG_ID || ""} />
     </html>

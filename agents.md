@@ -23,7 +23,7 @@ Thock Mania is a typing test PWA with mechanical keyboard sounds, real-time WPM 
 | Charts | recharts 3.8 |
 | Numbers | @number-flow/react (animated counters) |
 | Auth/DB | Supabase (@supabase/ssr + @supabase/supabase-js) |
-| PWA | Serwist (@serwist/next) |
+| PWA | Serwist (@serwist/turbopack) |
 | Linting | Biome 2.4 (via ultracite presets) |
 | Compiler | React Compiler (production only) |
 
@@ -267,10 +267,12 @@ All persisted in localStorage with `tc-` prefix:
 
 ## PWA
 
-- Service worker: `app/sw.ts` → compiled to `/public/sw.js`
+- Service worker source: `app/sw.ts`, imports `defaultCache` from `@serwist/turbopack/worker`
+- Built on-demand by the route handler `app/serwist/[path]/route.ts` (via `createSerwistRoute`), served at `/serwist/sw.js` — compatible with Next.js 16 Turbopack builds
+- Bundled with `esbuild` during `next build` (generates a fresh precache manifest each build)
 - Runtime caching via Serwist `defaultCache`
-- Disabled in development
-- Manual registration in `AppChrome` component
+- Registered client-side by `<SerwistProvider swUrl="/serwist/sw.js">` in `app/layout.tsx` (disabled in development)
+- Config wraps `next.config.ts` with `withSerwist` from `@serwist/turbopack`
 - Sound sprite preloaded via `<link rel="preload">` in `<head>`
 
 ---

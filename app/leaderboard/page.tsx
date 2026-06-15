@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function LeaderboardPage() {
     // Prefetch default (global, all modes) leaderboard data — cached via "use cache"
-    const initialEntries = await getLeaderboardData("global");
+    const initialEntries = await getLeaderboardData("global", "all");
 
     return <LeaderboardClient initialEntries={initialEntries} />;
 }

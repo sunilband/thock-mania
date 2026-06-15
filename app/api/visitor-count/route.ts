@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getVisitorCount } from "@/lib/visitor-count";
@@ -16,6 +17,9 @@ export async function POST() {
   if (error) {
     return NextResponse.json({ count: 0 }, { status: 500 });
   }
+
+  // Keep the cached GET value in sync after a mutation
+  revalidateTag("visitor-count", { expire: 0 });
 
   return NextResponse.json({ count: data ?? 0 });
 }

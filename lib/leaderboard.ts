@@ -37,10 +37,17 @@ export interface LeaderboardEntry {
 
 export async function getLeaderboardData(
     period: "global" | "weekly" | "daily" = "global",
-    mode?: string
+    mode: string = "all"
 ): Promise<LeaderboardEntry[]> {
-    cacheTag("leaderboard", `leaderboard-${period}`, mode ? `leaderboard-${mode}` : "leaderboard-all");
-    cacheLife("max");
+    cacheTag("leaderboard", `leaderboard-${period}`, `leaderboard-${mode}`);
+    // Global only changes when new scores arrive (handled by tag revalidation),
+    // so it can live forever. Weekly/daily use rolling time windows computed at
+    // cache-fill time, so they need a bounded lifetime to refresh the window.
+    if (period === "global") {
+        cacheLife("max");
+    } else {
+        cacheLife("hours");
+    }
 
     const supabase = createPublicClient();
 

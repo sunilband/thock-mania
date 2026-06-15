@@ -2,19 +2,13 @@
 
 import { ArrowsCounterClockwiseIcon, CursorIcon } from "@phosphor-icons/react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "@/components/settings/settings-provider";
+import { ResultsScreen } from "@/components/typing/results";
 import { TestControls } from "@/components/typing/test-controls";
 import { WordItem } from "@/components/typing/word-item";
 import { useTypingTest } from "@/hooks/use-typing-test";
 import { cn } from "@/lib/utils";
-
-const ResultsScreen = dynamic(
-  () =>
-    import("@/components/typing/results").then((mod) => mod.ResultsScreen),
-  { ssr: false }
-);
 
 interface TypingTestProps {
   onFinished?: (finished: boolean) => void;
@@ -244,70 +238,57 @@ export function TypingTest(props: TypingTestProps) {
             value={typed}
           />
 
-          {words.length === 0 ? (
-            <div className="flex flex-wrap gap-x-2.5 gap-y-3">
-              {Array.from({ length: 38 }).map((_, i) => (
-                // biome-ignore lint: shimmer items
-                <div
-                  key={i}
-                  className="h-7 animate-pulse rounded bg-foreground/[0.06]"
-                  style={{ width: `${40 + ((i * 17) % 60)}px` }}
-                />
-              ))}
-            </div>
-          ) : (
-            <LayoutGroup id="words">
-              <motion.div
-                animate={{
-                  y: -rowOffset,
-                  opacity: wordsOpacity,
-                  filter: resetting ? "blur(4px)" : "blur(0px)",
-                }}
-                className="flex flex-wrap gap-x-2.5 gap-y-1"
-                transition={
-                  resetting
-                    ? { duration: 0.15, ease: "easeOut" }
-                    : { type: "spring", stiffness: 300, damping: 30, mass: 0.8 }
+          <LayoutGroup id="words">
+            <motion.div
+              animate={{
+                y: -rowOffset,
+                opacity: wordsOpacity,
+                filter: resetting ? "blur(4px)" : "blur(0px)",
+              }}
+              className="flex flex-wrap gap-x-2.5 gap-y-1"
+              transition={
+                resetting
+                  ? { duration: 0.15, ease: "easeOut" }
+                  : { type: "spring", stiffness: 300, damping: 30, mass: 0.8 }
+              }
+            >
+              {words.map((word, wIdx) => {
+                const isActive = wIdx === wordIndex;
+                const isPast = wIdx < wordIndex;
+                const isFuture = !(isActive || isPast);
+                let displayInput = "";
+                if (isActive) {
+                  displayInput = typed;
+                } else if (isPast) {
+                  displayInput = wordInputs[wIdx] ?? "";
                 }
-              >
-                {words.map((word, wIdx) => {
-                  const isActive = wIdx === wordIndex;
-                  const isPast = wIdx < wordIndex;
-                  const isFuture = !(isActive || isPast);
-                  let displayInput = "";
-                  if (isActive) {
-                    displayInput = typed;
-                  } else if (isPast) {
-                    displayInput = wordInputs[wIdx] ?? "";
-                  }
-                  const hasError = isPast && wordInputs[wIdx] !== word;
-                  const currentWordDone =
-                    typed.length >= (words[wordIndex]?.length ?? 0);
-                  const isNextWord = wIdx === wordIndex + 1;
-                  const dimmed =
-                    ghostMode &&
-                    isFocused &&
-                    isFuture &&
-                    !(currentWordDone && isNextWord);
+                const hasError = isPast && wordInputs[wIdx] !== word;
+                const currentWordDone =
+                  typed.length >= (words[wordIndex]?.length ?? 0);
+                const isNextWord = wIdx === wordIndex + 1;
+                const dimmed =
+                  ghostMode &&
+                  isFocused &&
+                  isFuture &&
+                  !(currentWordDone && isNextWord);
 
-                  return (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: word+index combo ensures uniqueness for duplicate words
-                    <WordItem
-                      caretStyle={caretStyle}
-                      dimmed={dimmed}
-                      displayInput={displayInput}
-                      elemRef={isActive ? activeWordRef : undefined}
-                      hasError={hasError}
-                      isActive={isActive}
-                      isPast={isPast}
-                      key={`${word}-${wIdx}`}
-                      word={word}
-                    />
-                  );
-                })}
-              </motion.div>
-            </LayoutGroup>
-          )}
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: word+index combo ensures uniqueness for duplicate words
+                  <WordItem
+                    caretStyle={caretStyle}
+                    dimmed={dimmed}
+                    displayInput={displayInput}
+                    elemRef={isActive ? activeWordRef : undefined}
+                    hasError={hasError}
+                    isActive={isActive}
+                    isPast={isPast}
+                    key={`${word}-${wIdx}`}
+                    word={word}
+                  />
+                );
+              })}
+            </motion.div>
+          </LayoutGroup>
           {/* Unfocused: blur overlay with prompt */}
           <AnimatePresence>
             {!isFocused && (

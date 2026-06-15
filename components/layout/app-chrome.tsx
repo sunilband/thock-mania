@@ -69,14 +69,6 @@ export function AppChrome({ children }: { children: ReactNode }) {
   const [typingActive, setTypingActive] = useState(false);
   const homeLogoHandlerRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        /* ignore */
-      });
-    }
-  }, []);
-
   // ⌘K to toggle settings, ⌘H to toggle history
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     | "global"
     | "weekly"
     | "daily";
-  const mode = searchParams.get("mode") ?? undefined;
+  const mode = searchParams.get("mode") ?? "all";
 
   const entries = await getLeaderboardData(period, mode);
 
