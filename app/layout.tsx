@@ -164,7 +164,7 @@ export default function RootLayout({
           </Suspense>
         </ThemeProvider>
       </body>
-      <GoogleAnalytics gaId="G-SQJJCVP529" />
+      <GoogleAnalytics gaId={process.env.GTAG_ID || ""} />
     </html>
   );
 }
