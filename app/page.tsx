@@ -86,7 +86,7 @@ export default function Page() {
             >
               Sunil Band
             </a>
-            . The source code is available on{" "}
+            . ⭐ Enjoying the thocks? Give the repo a star on{" "}
             <a
               className="text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
               href="https://github.com/sunilband/thock-mania"
