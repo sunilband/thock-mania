@@ -48,21 +48,27 @@ function getRankClass(rank: number) {
     return "border-transparent";
 }
 
+const MODE_OPTIONS = ["all", "time", "words", "quote"] as const;
+type ModeFilter = (typeof MODE_OPTIONS)[number];
+
 export default function LeaderboardPage() {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<"global" | "weekly" | "daily">("global");
+    const [mode, setMode] = useState<ModeFilter>("all");
 
     useEffect(() => {
         setLoading(true);
-        fetch(`/api/leaderboard?period=${period}`)
+        const params = new URLSearchParams({ period });
+        if (mode !== "all") params.set("mode", mode);
+        fetch(`/api/leaderboard?${params}`)
             .then((res) => res.json())
             .then((data) => {
                 setEntries(data.entries ?? []);
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, [period]);
+    }, [period, mode]);
 
     return (
         <div className="flex flex-1 flex-col items-center px-4 py-8 md:px-10">
@@ -73,7 +79,7 @@ export default function LeaderboardPage() {
                 transition={{ duration: 0.5, ease }}
             >
                 {/* Header */}
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                         <TrophyIcon className="text-primary" size={28} weight="duotone" />
                         <div>
@@ -111,6 +117,32 @@ export default function LeaderboardPage() {
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* Mode filter */}
+                <div className="mb-4 flex rounded-full border border-foreground/10 bg-foreground/[0.03] p-1 w-fit">
+                    {MODE_OPTIONS.map((m) => (
+                        <button
+                            className={cn(
+                                "relative rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                                mode === m
+                                    ? "text-foreground"
+                                    : "text-muted-foreground hover:text-foreground/70"
+                            )}
+                            key={m}
+                            onClick={() => setMode(m)}
+                            type="button"
+                        >
+                            {mode === m && (
+                                <motion.div
+                                    className="absolute inset-0 rounded-full bg-foreground/[0.08]"
+                                    layoutId="modeToggle"
+                                    transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                                />
+                            )}
+                            <span className="relative z-10 capitalize">{m}</span>
+                        </button>
+                    ))}
                 </div>
 
                 {/* Table */}

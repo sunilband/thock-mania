@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { Suspense } from "react";
 import { Geist_Mono, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import {
-  generateAnonAvatarUrl,
-  generateAnonName,
-} from "@/lib/anonymous-identity";
-import { ANON_UID_COOKIE } from "@/lib/constants";
+import { IdentityProvider } from "@/components/auth/identity-provider";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { getIdentityData } from "@/lib/get-identity";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { GoogleAnalytics } from '@next/third-parties/google'
@@ -117,16 +114,13 @@ const jsonLd = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Read anonymous UID from cookie (set by middleware) and resolve identity server-side
-  const cookieStore = await cookies();
-  const anonUid = cookieStore.get(ANON_UID_COOKIE)?.value ?? "";
-  const anonDisplayName = anonUid ? generateAnonName(anonUid) : "Anonymous";
-  const anonAvatarUrl = anonUid ? generateAnonAvatarUrl(anonUid) : "";
+  // Start fetching identity data without blocking render (PPR pattern)
+  const identityPromise = getIdentityData();
 
   return (
     <html
@@ -159,14 +153,15 @@ export default async function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <AuthProvider
-            anonAvatarUrl={anonAvatarUrl}
-            anonDisplayName={anonDisplayName}
-          >
-            <SettingsProvider>
-              <AppChrome>{children}</AppChrome>
-            </SettingsProvider>
-          </AuthProvider>
+          <Suspense>
+            <IdentityProvider identityPromise={identityPromise}>
+              <AuthProvider>
+                <SettingsProvider>
+                  <AppChrome>{children}</AppChrome>
+                </SettingsProvider>
+              </AuthProvider>
+            </IdentityProvider>
+          </Suspense>
         </ThemeProvider>
       </body>
       <GoogleAnalytics gaId="G-SQJJCVP529" />

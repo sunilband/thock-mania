@@ -1,6 +1,5 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import {
   createContext,
   type ReactNode,
@@ -11,16 +10,17 @@ import {
   useRef,
   useState,
 } from "react";
+import { useIdentityData } from "@/components/auth/identity-provider";
+import type { SerializedUser } from "@/lib/get-identity";
 import { migrateAnonymousData } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthContextValue {
   avatarUrl: string;
   displayName: string;
-  loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  user: User | null;
+  user: SerializedUser | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,43 +33,37 @@ export function useAuth() {
   return ctx;
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
-  /** Anonymous display name resolved server-side from cookie */
-  anonDisplayName: string;
-  /** Anonymous avatar URL resolved server-side from cookie */
-  anonAvatarUrl: string;
-}
-
-export function AuthProvider({
-  children,
-  anonDisplayName,
-  anonAvatarUrl,
-}: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const { anonDisplayName, anonAvatarUrl, initialUser } = useIdentityData();
+  const [user, setUser] = useState<SerializedUser | null>(initialUser);
   const supabase = useMemo(() => createClient(), []);
   const migrationDone = useRef(false);
 
+  // Listen for auth state changes (login/logout/token refresh) — client only
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
-      setUser(u);
-      setLoading(false);
-    });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      const newUser = session?.user ?? null;
-      setUser(newUser);
-      setLoading(false);
-
-      // Migrate anonymous data when user logs in
-      if (newUser && !migrationDone.current) {
-        migrationDone.current = true;
-        migrateAnonymousData().catch(() => {
-          /* non-critical */
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          id: u.id,
+          email: u.email ?? "",
+          displayName:
+            u.user_metadata?.full_name ?? u.user_metadata?.name ?? "User",
+          avatarUrl:
+            u.user_metadata?.avatar_url ?? u.user_metadata?.picture ?? "",
         });
+
+        // Migrate anonymous data on first login
+        if (!migrationDone.current) {
+          migrationDone.current = true;
+          migrateAnonymousData().catch(() => {
+            /* non-critical */
+          });
+        }
+      } else {
+        setUser(null);
       }
     });
 
@@ -90,17 +84,12 @@ export function AuthProvider({
     setUser(null);
   }, [supabase]);
 
-  const displayName = user
-    ? (user.user_metadata?.full_name ?? user.user_metadata?.name ?? "User")
-    : anonDisplayName;
-
-  const avatarUrl = user
-    ? (user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? "")
-    : anonAvatarUrl;
+  const displayName = user ? user.displayName : anonDisplayName;
+  const avatarUrl = user ? user.avatarUrl : anonAvatarUrl;
 
   const value = useMemo(
-    () => ({ user, loading, signInWithGoogle, signOut, displayName, avatarUrl }),
-    [user, loading, signInWithGoogle, signOut, displayName, avatarUrl]
+    () => ({ user, signInWithGoogle, signOut, displayName, avatarUrl }),
+    [user, signInWithGoogle, signOut, displayName, avatarUrl]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

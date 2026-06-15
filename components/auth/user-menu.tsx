@@ -12,7 +12,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 export function UserMenu() {
-  const { user, loading, signInWithGoogle, signOut, displayName, avatarUrl } =
+  const { user, signInWithGoogle, signOut, displayName, avatarUrl } =
     useAuth();
   const { setHistoryOpen } = useAppChrome();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,12 +29,6 @@ export function UserMenu() {
     document.addEventListener("mousedown", handleMouseDown);
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [menuOpen]);
-
-  if (loading) {
-    return (
-      <div className="h-8 w-8 animate-pulse rounded-full bg-foreground/[0.06]" />
-    );
-  }
 
   return (
     <div className="relative" ref={menuRef}>

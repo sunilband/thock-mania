@@ -18,11 +18,12 @@ interface TestResultRow {
   } | null;
 }
 
-// GET — fetch leaderboard with optional period filter (global | weekly | daily)
+// GET — fetch leaderboard with optional period and mode filters
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") ?? "global";
+  const mode = searchParams.get("mode"); // e.g. "time", "words", "quote", "zen"
 
   // Build date filter for weekly/daily
   let dateFilter: string | null = null;
@@ -62,6 +63,10 @@ export async function GET(request: NextRequest) {
 
   if (dateFilter) {
     query = query.gte("created_at", dateFilter);
+  }
+
+  if (mode) {
+    query = query.eq("mode", mode);
   }
 
   const { data, error } = await query;

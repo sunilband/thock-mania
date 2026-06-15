@@ -65,9 +65,11 @@ proxy.ts                      Supabase session refresh + anonymous UID cookie (N
 
 ```
 ThemeProvider (dark/light/system via next-themes)
-  → AuthProvider (Supabase user state)
-    → SettingsProvider (all user preferences, localStorage)
-      → AppChrome (shell UI + context for header state)
+  → Suspense
+    → IdentityProvider (resolves identity promise via React `use()`)
+      → AuthProvider (Supabase user state + anonymous identity from IdentityProvider)
+        → SettingsProvider (all user preferences, localStorage)
+          → AppChrome (shell UI + context for header state)
 ```
 
 ---

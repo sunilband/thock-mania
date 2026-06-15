@@ -19,10 +19,10 @@ export function generateAnonName(uid: string): string {
 }
 
 /**
- * Generate a deterministic avatar URL using DiceBear Shapes API.
+ * Generate a deterministic avatar URL using DiceBear Avataaars style.
  */
 export function generateAnonAvatarUrl(uid: string): string {
-    return `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(uid)}&size=64`;
+    return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(uid)}&size=64`;
 }
 
 function hashCode(str: string): number {
