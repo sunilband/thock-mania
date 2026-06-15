@@ -6,7 +6,6 @@ import {
   SignOutIcon,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useAppChrome } from "@/components/layout/app-chrome";
 import { useAuth } from "@/components/auth/auth-provider";
