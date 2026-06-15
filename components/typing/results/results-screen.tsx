@@ -7,9 +7,9 @@ import {
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Confetti, type ConfettiRef } from "@/components/ui/confetti";
+import { saveTestResult } from "@/lib/actions";
 import { saveIfPersonalBest } from "@/lib/personal-best";
 import { addTestToHistory } from "@/lib/test-history";
 import type { ResultStats } from "@/lib/types";
@@ -53,7 +53,6 @@ export function ResultsScreen({
 
   const confettiRef = useRef<ConfettiRef>(null);
   const invalid = isInvalidTestResult(stats);
-  const { user, anonProfileId } = useAuth();
 
   const pb = useMemo(
     () =>
@@ -78,30 +77,22 @@ export function ResultsScreen({
       date: new Date().toISOString(),
     });
 
-    // Save to database — works for both logged-in and anonymous users
-    const profileId = user ? undefined : anonProfileId;
-    if (user || profileId) {
-      fetch("/api/test-results", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wpm,
-          raw,
-          accuracy,
-          consistency,
-          mode,
-          modeDetail,
-          elapsedSeconds,
-          correctChars,
-          incorrectChars,
-          extraChars,
-          missedChars,
-          profileId,
-        }),
-      }).catch(() => {
-        // Silently fail — localStorage is the fallback
-      });
-    }
+    // Save to database via server action — identity resolved from cookie/session
+    saveTestResult({
+      wpm,
+      raw,
+      accuracy,
+      consistency,
+      mode,
+      modeDetail,
+      elapsedSeconds,
+      correctChars,
+      incorrectChars,
+      extraChars,
+      missedChars,
+    }).catch(() => {
+      // Silently fail — localStorage is the fallback
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

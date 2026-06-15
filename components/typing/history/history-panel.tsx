@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartLineUp, TrashSimple, X } from "@phosphor-icons/react";
+import { ChartLineUpIcon, TrashSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -11,6 +11,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import useMediaQuery from "@/hooks/use-media-query";
+import { getTestHistory as getTestHistoryAction } from "@/lib/actions";
 import {
   clearTestHistory,
   getTestHistory,
@@ -59,52 +60,31 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
     bestWpm: 0,
     count: 0,
   });
-  const { user, anonProfileId } = useAuth();
+  const { user } = useAuth();
 
-  // Re-read history whenever the panel opens so it reflects the latest runs.
-  // Fetch from DB for both logged-in and anonymous users; fallback to localStorage.
+  // Re-read history whenever the panel opens — uses server action.
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    const profileId = user ? undefined : anonProfileId;
-    const hasDbAccess = user || profileId;
-
-    if (hasDbAccess) {
-      const url = profileId
-        ? `/api/test-results?profileId=${profileId}`
-        : "/api/test-results";
-      fetch(url)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.entries) {
-            const dbEntries: TestHistoryEntry[] = data.entries.map(
-              (e: Record<string, unknown>) => ({
-                wpm: e.wpm as number,
-                raw: e.raw as number,
-                accuracy: e.accuracy as number,
-                consistency: e.consistency as number,
-                mode: e.mode as string,
-                modeDetail: e.modeDetail as string,
-                date: e.date as string,
-              })
-            );
-            setEntries(dbEntries);
-            setSummary(summarizeHistory(dbEntries));
-          }
-        })
-        .catch(() => {
+    getTestHistoryAction()
+      .then((dbEntries) => {
+        if (dbEntries.length > 0) {
+          setEntries(dbEntries);
+          setSummary(summarizeHistory(dbEntries));
+        } else {
           // Fallback to localStorage
           const data = getTestHistory();
           setEntries(data);
           setSummary(summarizeHistory(data));
-        });
-    } else {
-      const data = getTestHistory();
-      setEntries(data);
-      setSummary(summarizeHistory(data));
-    }
+        }
+      })
+      .catch(() => {
+        const data = getTestHistory();
+        setEntries(data);
+        setSummary(summarizeHistory(data));
+      });
   }, [open, user]);
 
   const popupClass = cn(
@@ -129,14 +109,14 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
               History
             </DrawerTitle>
             <DrawerClose className="flex items-center justify-center rounded-full bg-foreground/[0.06] p-1.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground">
-              <X size={14} />
+              <XIcon size={14} />
               <span className="sr-only">Close</span>
             </DrawerClose>
           </div>
 
           {entries.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-              <ChartLineUp
+              <ChartLineUpIcon
                 className="text-muted-foreground/30"
                 size={32}
                 weight="duotone"
@@ -168,7 +148,7 @@ export function HistoryPanel({ open, onOpenChange }: HistoryPanelProps) {
                   onClick={handleClear}
                   type="button"
                 >
-                  <TrashSimple size={11} weight="duotone" />
+                  <TrashSimpleIcon size={11} weight="duotone" />
                   clear
                 </button>
               </div>

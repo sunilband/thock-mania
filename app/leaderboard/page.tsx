@@ -2,7 +2,6 @@
 
 import { CrownIcon, MedalIcon, TrophyIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -189,13 +188,10 @@ function LeaderboardContent({
                     {/* Player */}
                     <div className="flex flex-1 items-center gap-2.5 overflow-hidden">
                         {entry.avatarUrl ? (
-                            <Image
+                            <img
                                 alt={entry.displayName}
-                                className="shrink-0 rounded-full"
-                                height={28}
+                                className="h-7 w-7 shrink-0 rounded-full object-cover"
                                 src={entry.avatarUrl}
-                                unoptimized
-                                width={28}
                             />
                         ) : (
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 font-medium text-primary text-xs">

@@ -45,13 +45,10 @@ export function UserMenu() {
         type="button"
       >
         {avatarUrl ? (
-          <Image
+          <img
             alt={displayName}
-            className="rounded-full"
-            height={26}
+            className="h-[26px] w-[26px] rounded-full object-cover"
             src={avatarUrl}
-            unoptimized
-            width={26}
           />
         ) : (
           <div className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-primary/20 font-medium text-primary text-xs">

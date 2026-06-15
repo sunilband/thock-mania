@@ -54,9 +54,9 @@ components/
 └── ui/                       Keyboard system, Drawer, Popover, Slider, etc.
 
 hooks/                        use-typing-test, use-media-query
-lib/                          Utilities, Supabase clients, types, storage
+lib/                          Utilities, Supabase clients, types, storage, server actions
 supabase/migrations/          SQL schema
-middleware.ts                 Supabase session refresh
+proxy.ts                      Supabase session refresh + anonymous UID cookie (Next.js 16 convention)
 ```
 
 ---
@@ -87,17 +87,27 @@ The site header contains (left to right):
 
 - **Provider**: Supabase with Google OAuth only
 - **Flow**: `signInWithGoogle()` → OAuth redirect → `/auth/callback` → session
-- **Middleware**: Refreshes session cookies on every non-static request
+- **Middleware**: `proxy.ts` (Next.js 16 convention) refreshes Supabase session cookies and sets the anonymous UID cookie on every non-static request
 - **Profile creation**: Postgres trigger auto-inserts `profiles` row on sign-up (display_name + avatar_url from Google metadata)
 - **Client access**: `useAuth()` hook provides `user`, `loading`, `signInWithGoogle`, `signOut`, `anonProfileId`, `displayName`, `avatarUrl`
 
 ### Anonymous Users
-- Every visitor gets a persistent anonymous UID stored in `localStorage` (`kz-anon-uid`)
-- An anonymous profile is created in the DB on first visit (`is_anonymous = true`, `anonymous_uid` set)
+- Every visitor gets a persistent anonymous UID via a cookie (`kz-anon-uid`), set by middleware on first request
+- Cookie lasts 2 years, `SameSite=Lax`, not httpOnly
+- No localStorage or client-side cookie reading — the layout reads the cookie server-side and passes identity (displayName, avatarUrl) as props to AuthProvider
+- The cookie is automatically attached to server action calls, so the server always knows who the user is
+- An anonymous profile is created in the DB on-demand by `resolveUser()` server-side helper
 - Anonymous users get a deterministic display name (via `unique-names-generator`) and avatar (via DiceBear shapes API)
 - Anonymous users' results are saved to the DB and appear on the leaderboard
-- When an anonymous user signs in with Google, their data is migrated via `migrate_anonymous_to_user()` RPC — all test results transfer to the authenticated profile and the anonymous profile is deleted
+- When an anonymous user signs in with Google, `migrateAnonymousData()` server action moves all test results to the authenticated profile and deletes the anonymous one
 - The user menu always shows the avatar pill (anonymous or logged in); anonymous users see "Sign in with Google" inside the dropdown
+
+### Server Actions
+- `saveTestResult()` — saves a test result, resolves identity from cookie/session server-side
+- `getTestHistory()` — fetches user's history, resolves identity server-side
+- `migrateAnonymousData()` — migrates anonymous data to logged-in user
+- `getResolvedIdentity()` — returns displayName, avatarUrl, isAnonymous
+- Located in `lib/actions.ts`
 
 ---
 
@@ -161,7 +171,7 @@ The site header contains (left to right):
 3. If **valid**:
    - Always saves to localStorage (`addTestToHistory()`, max 100 entries)
    - Always checks personal best (`saveIfPersonalBest()`)
-   - Saves to DB for **all users** (logged-in uses `user.id`, anonymous uses `anonProfileId`)
+   - Calls `saveTestResult()` server action — identity resolved server-side from cookie/session
 4. If **invalid**: shows "invalid result" screen, no data saved
 
 ---

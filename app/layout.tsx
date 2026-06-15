@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist_Mono, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import {
+  generateAnonAvatarUrl,
+  generateAnonName,
+} from "@/lib/anonymous-identity";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -111,11 +116,17 @@ const jsonLd = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read anonymous UID from cookie (set by middleware) and resolve identity server-side
+  const cookieStore = await cookies();
+  const anonUid = cookieStore.get("kz-anon-uid")?.value ?? "";
+  const anonDisplayName = anonUid ? generateAnonName(anonUid) : "Anonymous";
+  const anonAvatarUrl = anonUid ? generateAnonAvatarUrl(anonUid) : "";
+
   return (
     <html
       className={cn(
@@ -147,7 +158,10 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider
+            anonAvatarUrl={anonAvatarUrl}
+            anonDisplayName={anonDisplayName}
+          >
             <SettingsProvider>
               <AppChrome>{children}</AppChrome>
             </SettingsProvider>
