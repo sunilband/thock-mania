@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   createContext,
   type ReactNode,
@@ -129,7 +129,6 @@ export function AppChrome({ children }: { children: ReactNode }) {
 }
 
 function SiteHeader() {
-  const router = useRouter();
   const { setSettingsOpen, typingActive, homeLogoHandlerRef } =
     useAppChrome();
   const { showKeyboard } = useSettings();
@@ -164,14 +163,6 @@ function SiteHeader() {
     );
   }, [typingActive]);
 
-  function handleLogoClick() {
-    if (homeLogoHandlerRef.current) {
-      homeLogoHandlerRef.current();
-      return;
-    }
-    router.push("/");
-  }
-
   const headerOpacity = dimHeader ? (headerVisible ? 1 : 0.1) : 1;
 
   return (
@@ -184,14 +175,19 @@ function SiteHeader() {
       <div className="relative flex w-full max-w-5xl items-center justify-between">
         {/* Left — Logo + Visitor Count */}
         <div className="flex items-center gap-4">
-          <button
+          <Link
             className="flex cursor-pointer items-center gap-1.5 font-semibold text-primary text-xl tracking-tight"
-            onClick={handleLogoClick}
-            type="button"
+            href="/"
+            onClick={(e) => {
+              if (homeLogoHandlerRef.current) {
+                e.preventDefault();
+                homeLogoHandlerRef.current();
+              }
+            }}
           >
             <ThockManiaLogo size={20} />
             Thock Mania
-          </button>
+          </Link>
           <div className="hidden md:block">
             <VisitorCount />
           </div>
@@ -223,16 +219,14 @@ function SiteHeader() {
           </motion.button>
 
           {/* Leaderboard */}
-          <motion.button
+          <Link
             aria-label="Leaderboard"
             className="flex items-center gap-1.5 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-            onClick={() => router.push("/leaderboard")}
-            type="button"
-            whileTap={{ scale: 0.97 }}
+            href="/leaderboard"
           >
             <TrophyIcon size={15} weight="duotone" />
             <span className="hidden sm:inline">Leaderboard</span>
-          </motion.button>
+          </Link>
 
           {/* User menu / Sign in */}
           <UserMenu />
