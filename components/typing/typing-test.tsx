@@ -2,13 +2,20 @@
 
 import { ArrowsCounterClockwiseIcon, CursorIcon } from "@phosphor-icons/react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "@/components/settings/settings-provider";
-import { ResultsScreen } from "@/components/typing/results";
 import { TestControls } from "@/components/typing/test-controls";
 import { WordItem } from "@/components/typing/word-item";
 import { useTypingTest } from "@/hooks/use-typing-test";
 import { cn } from "@/lib/utils";
+
+// Lazy-loaded — chunk download is triggered when typing starts
+const ResultsScreen = lazy(() =>
+  import("@/components/typing/results").then((mod) => ({ default: mod.ResultsScreen }))
+);
+
+// Preload the results chunk (import() caches so this is idempotent)
+const preloadResults = () => { import("@/components/typing/results"); };
 
 interface TypingTestProps {
   onFinished?: (finished: boolean) => void;
@@ -93,6 +100,11 @@ export function TypingTest(props: TypingTestProps) {
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
   }, [isFocused, inputRef]);
 
+  // Preload results chunk when user starts typing
+  useEffect(() => {
+    if (started) preloadResults();
+  }, [started]);
+
   if (showResults) {
     return (
       <div
@@ -102,11 +114,13 @@ export function TypingTest(props: TypingTestProps) {
           filter: screenFade < 1 ? "blur(4px)" : "none",
         }}
       >
-        <ResultsScreen
-          onNext={handleResultsNext}
-          onRestart={handleResultsRestart}
-          stats={frozenStats!}
-        />
+        <Suspense fallback={null}>
+          <ResultsScreen
+            onNext={handleResultsNext}
+            onRestart={handleResultsRestart}
+            stats={frozenStats!}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -218,12 +232,12 @@ export function TypingTest(props: TypingTestProps) {
           style={{ fontFamily: "var(--typing-font)" }}
         >
           <input
-            aria-hidden="true"
+            aria-label="Type here"
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
             autoFocus
-            className="absolute opacity-0"
+            className="absolute h-0 w-0 opacity-0"
             data-gramm="false"
             inputMode="text"
             onBlur={handleInputBlur}

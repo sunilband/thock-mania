@@ -242,11 +242,19 @@ function LeaderboardContent({
                     </span>
 
                     {/* Date */}
-                    <span className="hidden w-20 text-right text-[11px] text-muted-foreground/50 lg:block">
-                        {new Date(entry.createdAt).toLocaleDateString(undefined, {
-                            day: "numeric",
-                            month: "short",
-                        })}
+                    <span className="hidden w-20 text-right lg:block">
+                        <span className="text-[11px] text-muted-foreground/50 block">
+                            {new Date(entry.createdAt).toLocaleDateString(undefined, {
+                                day: "numeric",
+                                month: "short",
+                            })}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground/30">
+                            {new Date(entry.createdAt).toLocaleTimeString(undefined, {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            })}
+                        </span>
                     </span>
                 </motion.div>
             ))}

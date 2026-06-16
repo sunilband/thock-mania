@@ -76,8 +76,13 @@ export function ResultsScreen({
       modeDetail,
       date: new Date().toISOString(),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Save to database via server action — identity resolved from cookie/session
+  // Save to database via server action — runs after render to avoid
+  // setState-during-render errors from revalidateTag's router refresh
+  useEffect(() => {
+    if (invalid) return;
     saveTestResult({
       wpm,
       raw,

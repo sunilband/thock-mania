@@ -155,7 +155,7 @@ export default function RootLayout({
       <body>
         <SerwistProvider
           cacheOnNavigation={false}
-          disable
+          disable={process.env.NODE_ENV !== "production"}
           reloadOnOnline
           swUrl="/serwist/sw.js"
         >

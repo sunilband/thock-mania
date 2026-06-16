@@ -36,7 +36,7 @@ export function WpmChart({ history }: { history: WpmSnapshot[] }) {
   const maxVal = Math.max(...history.map((d) => d.raw), 10);
 
   return (
-    <ChartContainer className="h-full w-full" config={chartConfig}>
+    <ChartContainer className="h-full min-h-[200px] w-full" config={chartConfig}>
       <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
         <CartesianGrid
           stroke="currentColor"

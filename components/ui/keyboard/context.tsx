@@ -107,38 +107,37 @@ export function KeyboardProvider({
     }
 
     let cancelled = false;
-    const audioContext = new AudioContext();
-    audioContextRef.current = audioContext;
+    let audioContext: AudioContext | null = null;
 
-    // getSoundBuffer() returns the pre-fetched ArrayBuffer (started at module import time).
-    // By the time the component mounts, the fetch is usually already complete.
-    getSoundBuffer()
-      .then((ab) => (ab ? audioContext.decodeAudioData(ab.slice(0)) : null))
-      .then((decoded) => {
-        if (!cancelled && decoded) {
-          audioBufferRef.current = decoded;
-        }
-      })
-      .catch(() => {
-        // Sound is optional. Keep UI interactive if loading fails.
-      });
+    // Defer AudioContext creation until first user interaction to avoid
+    // Chrome's "AudioContext was not allowed to start" warning
+    const initAudio = () => {
+      if (cancelled || audioContext) return;
+      audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
 
-    // Resume on first user interaction (browsers suspend new AudioContexts)
-    const resume = () => {
-      if (audioContext.state === "suspended") {
-        void audioContext.resume();
-      }
+      getSoundBuffer()
+        .then((ab) => (ab ? audioContext!.decodeAudioData(ab.slice(0)) : null))
+        .then((decoded) => {
+          if (!cancelled && decoded) {
+            audioBufferRef.current = decoded;
+          }
+        })
+        .catch(() => {
+          // Sound is optional. Keep UI interactive if loading fails.
+        });
     };
-    document.addEventListener("keydown", resume, { once: true });
-    document.addEventListener("pointerdown", resume, { once: true });
+
+    document.addEventListener("keydown", initAudio, { once: true });
+    document.addEventListener("pointerdown", initAudio, { once: true });
 
     return () => {
       cancelled = true;
       audioBufferRef.current = null;
       audioContextRef.current = null;
-      document.removeEventListener("keydown", resume);
-      document.removeEventListener("pointerdown", resume);
-      void audioContext.close();
+      document.removeEventListener("keydown", initAudio);
+      document.removeEventListener("pointerdown", initAudio);
+      if (audioContext) void audioContext.close();
     };
   }, [enableSound, soundUrl]);
 
