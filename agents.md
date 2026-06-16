@@ -269,7 +269,7 @@ All persisted in localStorage with `tc-` prefix:
 
 - Service worker source: `app/sw.ts`, imports `defaultCache` from `@serwist/turbopack/worker`
 - Built on-demand by the route handler `app/serwist/[path]/route.ts` (via `createSerwistRoute`), served at `/serwist/sw.js` — compatible with Next.js 16 Turbopack builds
-- Bundled with `esbuild` during `next build` (generates a fresh precache manifest each build)
+- Bundled with `esbuild-wasm` during `next build` (platform-independent; generates a fresh precache manifest each build). Set via `useNativeEsbuild: false` to keep Windows (local) and Linux (Vercel) builds consistent
 - Runtime caching via Serwist `defaultCache`
 - Registered client-side by `<SerwistProvider swUrl="/serwist/sw.js">` in `app/layout.tsx` (disabled in development)
 - Config wraps `next.config.ts` with `withSerwist` from `@serwist/turbopack`
