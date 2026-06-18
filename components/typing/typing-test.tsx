@@ -71,7 +71,7 @@ export function TypingTest(props: TypingTestProps) {
     wordsContainerRef,
     activeWordRef,
     handleKeyDown,
-    handleInputChange,
+    handleNativeInput,
     handleCompositionStart,
     handleCompositionEnd,
     handleFocus,
@@ -89,6 +89,25 @@ export function TypingTest(props: TypingTestProps) {
     onDifficultyToggle,
     onRestart,
   } = useTypingTest({ ...props, onWrongKey });
+
+  // ── Debug overlay (opt-in via ?debug=true) ───────────────────────────────
+  // Shows the raw InputEvent stream (inputType/data/value) + derived state.
+  // Handy for diagnosing mobile soft-keyboard (Gboard) behaviour.
+  const [debugEnabled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("debug") === "true"
+  );
+  const [dbgLog, setDbgLog] = useState<string[]>([]);
+  const logDbg = useCallback(
+    (line: string) => {
+      if (!debugEnabled) {
+        return;
+      }
+      setDbgLog((p) => [...p.slice(-11), line]);
+    },
+    [debugEnabled]
+  );
 
   // Re-focus the hidden input on any keypress when it's blurred
   useEffect(() => {
@@ -147,7 +166,21 @@ export function TypingTest(props: TypingTestProps) {
         filter: screenFade < 1 ? "blur(4px)" : "none",
       }}
     >
-      {/* Controls toolbar */}
+      {/* Debug overlay — only when ?debug=true */}
+      {debugEnabled && (
+        <div
+          className="fixed top-12 left-1 z-[9999] max-w-[96vw] whitespace-pre-wrap break-all rounded bg-black/80 p-2 font-mono text-[9px] text-green-400 leading-tight"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDbgLog([]);
+          }}
+        >
+          {`state: typed=${JSON.stringify(typed)} idx=${wordIndex} inputs=${JSON.stringify(wordInputs)}`}
+          {"\n"}
+          {dbgLog.join("\n") || "(tap to clear) raw input events"}
+        </div>
+      )}
+
       <TestControls
         controlsVisible={controlsVisible}
         difficulty={difficulty}
@@ -242,16 +275,34 @@ export function TypingTest(props: TypingTestProps) {
             className="absolute h-0 w-0 opacity-0"
             data-gramm="false"
             inputMode="text"
+            onBeforeInput={(e) => {
+              const ne = e.nativeEvent as InputEvent;
+              logDbg(`before t=${ne.inputType} d=${JSON.stringify(ne.data)}`);
+            }}
             onBlur={handleInputBlur}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onCompositionEnd={handleCompositionEnd}
-            onCompositionStart={handleCompositionStart}
+            onChange={(e) => {
+              const ne = e.nativeEvent as InputEvent;
+              logDbg(
+                `chg t=${ne.inputType ?? "?"} d=${JSON.stringify(ne.data)} v=${JSON.stringify(e.target.value)}`
+              );
+              handleNativeInput(ne.inputType, ne.data);
+            }}
+            onCompositionEnd={(e) => {
+              logDbg(
+                `compEnd d=${JSON.stringify(e.data)} v=${JSON.stringify(e.currentTarget.value)}`
+              );
+              handleCompositionEnd(e);
+            }}
+            onCompositionStart={() => {
+              logDbg("compStart");
+              handleCompositionStart();
+            }}
+            onCompositionUpdate={(e) => logDbg(`compUpd d=${JSON.stringify(e.data)}`)}
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
             ref={inputRef}
             spellCheck={false}
             tabIndex={-1}
-            value={typed}
           />
 
           <LayoutGroup id="words">

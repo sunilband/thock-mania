@@ -334,6 +334,28 @@ All persisted in localStorage with `tc-` prefix:
 
 ---
 
+## Typing Input (keyboard & mobile)
+
+The typing test reads from a hidden, visually-empty `<input>` (in `components/typing/typing-test.tsx`), but the per-word state machine lives in `hooks/use-typing-test.ts`. Input is driven by the **native `InputEvent`'s `inputType` + `data`**, NOT by the input element's `value`.
+
+### Why not the value
+On Android Gboard the hidden zero-size input has its caret stuck at index 0, so every inserted character is *prepended* and the element's `value` comes out reversed (e.g. typing "these end" yields `"dne eseht"`). The `data` field, by contrast, always reports each edit in the correct order on every platform. Reading the value (or binding a controlled `value={typed}`) breaks mobile typing; the input is therefore **uncontrolled** and its value is never read.
+
+### How it works (`handleNativeInput(inputType, data)`)
+- `insertText` / `insertReplacementText` / `insertFromPaste` / `insertFromComposition` → feed each char of `data` through `handleTypedInput` (a space routes to `processSpace`, others to `processChar`).
+- `insertCompositionText` (IME / glide typing / predictions) → `data` is the *cumulative* word being composed; diff it against `composingPrevRef` (`applyTextDiff`) and apply the delta. `compositionstart` resets the buffer; `compositionend` applies any final delta and clears it.
+- `deleteContentBackward` / `deleteContent` / `deleteByCut` → one `processBackspace` (which also navigates to the previous word when the current word is empty).
+- `deleteWordBackward` → `clearWordOrNavigateBack`.
+- `keydown` is reserved for **shortcuts only** (Tab/Enter, Alt/Ctrl word-delete); Gboard reports keyCode 229 for typing, so it is never used for character entry or backspace.
+
+### Ref consistency
+`typedRef` / `wordIndexRef` / `wordInputsRef` are the **synchronous** source of truth, written by the processors and reset paths. They are deliberately NOT re-synced from (async) state on every render — doing so races with the rapid multi-event bursts Gboard fires per word and clobbers the refs mid-word, scrambling characters.
+
+### Debug overlay
+Append `?debug=true` to the URL to show a fixed overlay with the derived state (`typed`/`idx`/`inputs`) and a rolling log of raw input events (`inputType`/`data`/`value`). Off by default; tap it to clear the log.
+
+---
+
 ## PWA
 
 - Service worker source: `app/sw.ts`, imports `defaultCache` from `@serwist/turbopack/worker`

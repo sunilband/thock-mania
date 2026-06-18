@@ -143,6 +143,33 @@ export function useTypingTest({
   // race-free decisions.
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
+  // The full text currently held by the hidden <input>. The input is now an
+  // ordinary (uncontrolled) text field that accumulates everything typed
+  // (words separated by spaces) and is never reset mid-test. We diff its value
+  // against this ref to drive the per-word state machine. Keeping it a normal
+  // text field is what makes mobile IMEs (Android Gboard in particular) behave:
+  // a controlled value that we reset every space fights Gboard's composing
+  // buffer and garbles input.
+  const lastValueRef = useRef("");
+
+  // Rebuild the input's value from the authoritative typing state and align
+  // `lastValueRef` to it. Used to (a) reset the field and (b) reflect state
+  // changes that didn't originate from the input event (desktop Alt/Ctrl
+  // word-delete, which calls preventDefault). It is deliberately NEVER called
+  // mid-typing from the input event: programmatically rewriting the value moves
+  // the caret and fights mobile IMEs (Gboard), which scrambles characters. The
+  // field is otherwise a plain text box that we only read and diff.
+  const syncInputValue = useCallback(() => {
+    const committed = wordInputsRef.current;
+    const canonical =
+      committed.length > 0
+        ? `${committed.join(" ")} ${typedRef.current}`
+        : typedRef.current;
+    if (inputRef.current) {
+      inputRef.current.value = canonical;
+    }
+    lastValueRef.current = canonical;
+  }, []);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const mtCounts = useMemo(
@@ -161,11 +188,14 @@ export function useTypingTest({
   const accuracy = accuracyFromCounts(mtCounts);
   correctCharsRef.current = wpmNumerator;
 
-  // Mirror committed state into refs each render so the synchronous,
-  // per-character processors always start from the latest baseline.
-  typedRef.current = typed;
-  wordIndexRef.current = wordIndex;
-  wordInputsRef.current = wordInputs;
+  // NOTE: typedRef / wordIndexRef / wordInputsRef are deliberately NOT re-synced
+  // from state here. They are the synchronous source of truth, written by the
+  // input processors (processChar/Space/Backspace) and the reset paths. Mirroring
+  // the (async) committed state back into them every render races with rapid
+  // multi-event input bursts — Android Gboard fires several `input` events per
+  // word via IME composition, and a render with stale `typed` would clobber the
+  // ref mid-word, scrambling the characters. Every mutation already updates both
+  // the ref and the state, so the refs stay correct on their own.
 
   // Rule 1: derive realtime WPM inline — re-computed on every render triggered
   // by a keystroke (typed changes → re-render), no useEffect needed.
@@ -324,6 +354,10 @@ export function useTypingTest({
       keystrokeTimesRef.current = [];
       startTimeMsRef.current = null;
       submissionRef.current = null;
+      lastValueRef.current = "";
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
       if (m === "time") {
         setTimeLeft(to);
       }
@@ -813,6 +847,9 @@ export function useTypingTest({
         ensureStarted();
         markTypingActive();
         clearWordOrNavigateBack();
+        // preventDefault stopped the browser from editing the field, so realign
+        // the input value to the new state.
+        syncInputValue();
         return;
       }
 
@@ -842,24 +879,11 @@ export function useTypingTest({
         return;
       }
 
-      if (finished) {
-        return;
-      }
-
-      // Backspace at the start of a word produces no value change, so the
-      // input event never fires — handle the cross-word navigation here.
-      // (All other character entry and in-word deletion is handled by the
-      // input event in handleInputChange, which works on every platform
-      // including mobile soft keyboards.)
-      if (
-        e.key === "Backspace" &&
-        typedRef.current.length === 0 &&
-        wordIndexRef.current > 0
-      ) {
-        ensureStarted();
-        markTypingActive();
-        processBackspace();
-      }
+      // All character entry and deletion — including backspacing across word
+      // boundaries — is handled by the input event (handleInputChange), which
+      // works on every platform including mobile soft keyboards. `keydown` is
+      // only used here for shortcuts (Tab/Enter, Alt/Ctrl word-delete) because
+      // Gboard does not emit reliable key events for typing.
     },
     [
       finished,
@@ -870,65 +894,129 @@ export function useTypingTest({
       ensureStarted,
       markTypingActive,
       clearWordOrNavigateBack,
-      processBackspace,
+      syncInputValue,
     ]
   );
 
   const composingRef = useRef(false);
+  // Cumulative text of the word currently being composed by the IME (glide
+  // typing / predictions). Successive `insertCompositionText` events deliver the
+  // whole composing word each time; we diff against this to apply only the delta.
+  const composingPrevRef = useRef("");
 
-  // Single source of truth for character entry and in-word deletion. Driven by
-  // the input element's value (native `input` event), which fires reliably on
-  // desktop and all mobile soft keyboards (Gboard, iOS, etc.). We diff the new
-  // value against the current `typed` to determine what changed.
-  const handleInputChange = useCallback(
-    (value: string) => {
-      if (finished || composingRef.current) {
-        return;
-      }
-
-      // Longest common prefix between the new value and what we already have.
-      const current = typedRef.current;
+  // Replay the textual difference between two in-order strings (e.g. successive
+  // IME composition snapshots) onto the per-word state machine: shared prefix is
+  // kept, the rest of `prev` is backspaced, and the rest of `next` is inserted.
+  const applyTextDiff = useCallback(
+    (prev: string, next: string) => {
       let cp = 0;
-      const minLen = Math.min(value.length, current.length);
-      while (cp < minLen && value[cp] === current[cp]) {
+      const minLen = Math.min(prev.length, next.length);
+      while (cp < minLen && prev[cp] === next[cp]) {
         cp++;
       }
-
-      const deletions = current.length - cp;
-      const added = value.slice(cp);
+      const deletions = prev.length - cp;
+      const added = next.slice(cp);
       if (deletions === 0 && added.length === 0) {
         return;
       }
-
       ensureStarted();
       markTypingActive();
-
       for (let i = 0; i < deletions; i++) {
         processBackspace();
       }
-      for (const char of added) {
-        handleTypedInput(char);
+      for (const ch of added) {
+        handleTypedInput(ch);
+      }
+    },
+    [ensureStarted, markTypingActive, processBackspace, handleTypedInput]
+  );
+
+  // Single source of truth for character entry and deletion, driven by the
+  // native InputEvent's `inputType` + `data` rather than the input element's
+  // value. This is essential on mobile: Android Gboard inserts characters into
+  // the hidden, zero-size <input> at caret position 0, so the element's *value*
+  // comes out reversed and unusable — but `data` always reports each edit in the
+  // correct order. The same path works on desktop (every keystroke is an
+  // `insertText` / `deleteContentBackward` event), so there is one code path for
+  // all platforms. `keydown` is reserved for shortcuts only (Gboard reports a
+  // meaningless keyCode 229 for typing).
+  const handleNativeInput = useCallback(
+    (inputType: string | null | undefined, data: string | null) => {
+      if (finished) {
+        return;
+      }
+
+      // IME composition (glide typing, predictions, CJK): `data` is the whole
+      // word being composed so far. Diff it against the previous snapshot so a
+      // re-recognized gesture is applied as backspaces + inserts to the active
+      // word.
+      if (inputType === "insertCompositionText") {
+        const next = data ?? "";
+        applyTextDiff(composingPrevRef.current, next);
+        composingPrevRef.current = next;
+        return;
+      }
+
+      switch (inputType) {
+        case "insertText":
+        case "insertReplacementText":
+        case "insertFromPaste":
+        case "insertFromComposition": {
+          if (data) {
+            ensureStarted();
+            markTypingActive();
+            for (const ch of data) {
+              handleTypedInput(ch);
+            }
+          }
+          break;
+        }
+        case "deleteWordBackward": {
+          ensureStarted();
+          markTypingActive();
+          clearWordOrNavigateBack();
+          break;
+        }
+        case "deleteContentBackward":
+        case "deleteContent":
+        case "deleteByCut": {
+          ensureStarted();
+          markTypingActive();
+          processBackspace();
+          break;
+        }
+        default:
+          // Newlines and other input types are intentionally ignored.
+          break;
       }
     },
     [
       finished,
+      applyTextDiff,
       ensureStarted,
       markTypingActive,
-      processBackspace,
       handleTypedInput,
+      clearWordOrNavigateBack,
+      processBackspace,
     ]
   );
 
   const handleCompositionStart = useCallback(() => {
     composingRef.current = true;
+    composingPrevRef.current = "";
   }, []);
 
   const handleCompositionEnd = useCallback(
     (e: React.CompositionEvent<HTMLInputElement>) => {
+      // Apply any final delta the last insertCompositionText didn't deliver,
+      // then close the composition session. `data` is the committed word.
+      if (e.data != null) {
+        applyTextDiff(composingPrevRef.current, e.data);
+      }
+      composingPrevRef.current = "";
       composingRef.current = false;
-      handleInputChange(e.currentTarget.value);
     },
-    [handleInputChange]
+    [applyTextDiff]
   );
 
   const handleFocus = () => {
@@ -1043,6 +1131,10 @@ export function useTypingTest({
     keystrokeTimesRef.current = [];
     startTimeMsRef.current = null;
     submissionRef.current = null;
+    lastValueRef.current = "";
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
     if (mode === "time") {
       setTimeLeft(timeOption);
     }
@@ -1186,7 +1278,7 @@ export function useTypingTest({
     activeWordRef,
     // Handlers
     handleKeyDown,
-    handleInputChange,
+    handleNativeInput,
     handleCompositionStart,
     handleCompositionEnd,
     handleFocus,
