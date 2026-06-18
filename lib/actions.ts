@@ -6,50 +6,153 @@ import { ANON_UID_COOKIE } from "@/lib/constants";
 import { getLeaderboardData } from "@/lib/leaderboard";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resolveUser } from "@/lib/supabase/resolve-user";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { scoreSubmission } from "@/lib/score-submission";
+import { generateServerWords, type ServerTestMode } from "@/lib/server-words";
+import { createChallenge, verifyChallenge } from "@/lib/test-challenge";
+import type { TestSubmission } from "@/lib/types";
+import type { Difficulty } from "@/lib/words";
 import { getVisitorCount } from "@/lib/visitor-count";
 
-export interface SaveTestResultInput {
-    accuracy: number;
-    consistency: number;
-    correctChars: number;
-    elapsedSeconds: number;
-    extraChars: number;
-    incorrectChars: number;
-    missedChars: number;
-    mode: string;
+// Reject more than one save per profile inside this window — a genuine test
+// takes at least a couple of seconds plus reading time, so rapid-fire inserts
+// indicate scripted leaderboard spam rather than real runs.
+const MIN_SAVE_INTERVAL_MS = 1500;
+
+export interface StartTestInput {
+    mode: ServerTestMode;
     modeDetail: string;
-    raw: number;
-    wpm: number;
+    punctuation?: boolean;
+    numbers?: boolean;
+    difficulty?: Difficulty;
 }
 
-export async function saveTestResult(input: SaveTestResultInput) {
+export interface StartTestResult {
+    words: string[];
+    author: string | null;
+    /** opaque signed challenge — echoed back unchanged on submit */
+    token: string;
+}
+
+/**
+ * Begin a test: the SERVER picks the words and signs them into a challenge.
+ * The client must type against exactly these words; it cannot choose its own.
+ * Returns `null` if no identity can be resolved (caller falls back to a local,
+ * unranked test that is never saved to the DB).
+ */
+export async function startTest(
+    input: StartTestInput
+): Promise<StartTestResult | null> {
     const resolved = await resolveUser();
-    if (!resolved) return { success: false, error: "No identity" };
+    if (!resolved) {
+        return null;
+    }
 
-    const supabase = await createClient();
-
-    const { error } = await supabase.from("test_results").insert({
-        user_id: resolved.profileId,
-        wpm: input.wpm,
-        raw: input.raw,
-        accuracy: input.accuracy,
-        consistency: input.consistency,
+    const { words, author } = generateServerWords({
         mode: input.mode,
-        mode_detail: input.modeDetail,
-        elapsed_seconds: input.elapsedSeconds,
-        correct_chars: input.correctChars,
-        incorrect_chars: input.incorrectChars,
-        extra_chars: input.extraChars,
-        missed_chars: input.missedChars,
+        modeDetail: input.modeDetail,
+        punctuation: input.punctuation,
+        numbers: input.numbers,
+        difficulty: input.difficulty,
     });
 
-    if (error) return { success: false, error: error.message };
+    const durationSeconds =
+        input.mode === "time" ? Number(input.modeDetail) || 0 : 0;
+
+    const token = createChallenge({
+        uid: resolved.profileId,
+        mode: input.mode,
+        modeDetail: input.modeDetail,
+        durationSeconds,
+        words,
+    });
+
+    return { words, author, token };
+}
+
+export interface SubmitTestInput extends TestSubmission { }
+
+/**
+ * Submit a completed run. The server re-derives the score from its own signed
+ * word list and the player's raw typed input + keystroke timing — the
+ * client-computed numbers are never trusted. Returns the authoritative score on
+ * success so the UI can reconcile if it wishes.
+ */
+export async function submitTest(input: SubmitTestInput) {
+    // 1. Verify the challenge signature + freshness.
+    const payload = verifyChallenge(input.token);
+    if (!payload) {
+        return { success: false, error: "invalid_challenge" } as const;
+    }
+
+    // 2. The submitter must be the user the challenge was issued to.
+    const resolved = await resolveUser();
+    if (!resolved) {
+        return { success: false, error: "No identity" } as const;
+    }
+    if (resolved.profileId !== payload.uid) {
+        return { success: false, error: "identity_mismatch" } as const;
+    }
+
+    // 3. Recompute the score authoritatively from server words + raw input.
+    const outcome = scoreSubmission(payload, {
+        wordInputs: input.wordInputs,
+        typed: input.typed,
+        wordIndex: input.wordIndex,
+        keystrokeTimes: input.keystrokeTimes,
+    });
+    if (!outcome.ok) {
+        return { success: false, error: `Rejected: ${outcome.reason}` } as const;
+    }
+    const { score } = outcome;
+
+    // Trusted write path: the service-role client bypasses RLS, which is locked
+    // down so clients can NEVER insert results directly (migration 004). If it
+    // isn't configured we fail closed — the run stays in localStorage only
+    // rather than falling back to an insecure path.
+    let supabase: ReturnType<typeof createAdminClient>;
+    try {
+        supabase = createAdminClient();
+    } catch {
+        return { success: false, error: "writes_not_configured" } as const;
+    }
+
+    // 4. Lightweight rate limit: block bursts of saves from the same profile.
+    const since = new Date(Date.now() - MIN_SAVE_INTERVAL_MS).toISOString();
+    const { count: recentCount } = await supabase
+        .from("test_results")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", resolved.profileId)
+        .gte("created_at", since);
+    if ((recentCount ?? 0) > 0) {
+        return { success: false, error: "Rate limited" } as const;
+    }
+
+    // 5. Persist the SERVER-computed values.
+    const { error } = await supabase.from("test_results").insert({
+        user_id: resolved.profileId,
+        wpm: score.wpm,
+        raw: score.raw,
+        accuracy: score.accuracy,
+        consistency: score.consistency,
+        mode: score.mode,
+        mode_detail: score.modeDetail,
+        elapsed_seconds: score.elapsedSeconds,
+        correct_chars: score.correctChars,
+        incorrect_chars: score.incorrectChars,
+        extra_chars: score.extraChars,
+        missed_chars: score.missedChars,
+    });
+
+    if (error) {
+        return { success: false, error: error.message } as const;
+    }
 
     // Invalidate leaderboard cache so the new score appears immediately
     revalidateTag("leaderboard", { expire: 0 });
 
-    return { success: true };
+    return { success: true, score } as const;
 }
 
 export async function getTestHistory() {

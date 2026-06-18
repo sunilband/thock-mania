@@ -20,3 +20,21 @@ export interface ResultStats {
   wpm: number;
   wpmHistory: WpmSnapshot[];
 }
+
+/**
+ * Raw run data the client sends to the server for authoritative scoring.
+ * Contains NO computed score — the server recomputes everything from the typed
+ * input and keystroke timing against its own signed word list.
+ */
+export interface TestSubmission {
+  /** opaque signed challenge from startTest (binds the server's word list) */
+  token: string;
+  /** committed per-word inputs, index-aligned with the target words */
+  wordInputs: string[];
+  /** in-progress final word */
+  typed: string;
+  /** active word index */
+  wordIndex: number;
+  /** ms offset (from test start) of each character + space keystroke, in order */
+  keystrokeTimes: number[];
+}
