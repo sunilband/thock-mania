@@ -66,6 +66,7 @@ export function TypingTest(props: TypingTestProps) {
     controlsVisible,
     showResults,
     frozenStats,
+    submission,
     inputRef,
     wordsContainerRef,
     activeWordRef,
@@ -119,6 +120,7 @@ export function TypingTest(props: TypingTestProps) {
             onNext={handleResultsNext}
             onRestart={handleResultsRestart}
             stats={frozenStats!}
+            submission={submission}
           />
         </Suspense>
       </div>
@@ -266,41 +268,45 @@ export function TypingTest(props: TypingTestProps) {
                   : { type: "spring", stiffness: 300, damping: 30, mass: 0.8 }
               }
             >
-              {words.map((word, wIdx) => {
-                const isActive = wIdx === wordIndex;
-                const isPast = wIdx < wordIndex;
-                const isFuture = !(isActive || isPast);
-                let displayInput = "";
-                if (isActive) {
-                  displayInput = typed;
-                } else if (isPast) {
-                  displayInput = wordInputs[wIdx] ?? "";
-                }
-                const hasError = isPast && wordInputs[wIdx] !== word;
-                const currentWordDone =
-                  typed.length >= (words[wordIndex]?.length ?? 0);
-                const isNextWord = wIdx === wordIndex + 1;
-                const dimmed =
-                  ghostMode &&
-                  isFocused &&
-                  isFuture &&
-                  !(currentWordDone && isNextWord);
+              {words.length === 0 ? (
+                <WordsSkeleton />
+              ) : (
+                words.map((word, wIdx) => {
+                  const isActive = wIdx === wordIndex;
+                  const isPast = wIdx < wordIndex;
+                  const isFuture = !(isActive || isPast);
+                  let displayInput = "";
+                  if (isActive) {
+                    displayInput = typed;
+                  } else if (isPast) {
+                    displayInput = wordInputs[wIdx] ?? "";
+                  }
+                  const hasError = isPast && wordInputs[wIdx] !== word;
+                  const currentWordDone =
+                    typed.length >= (words[wordIndex]?.length ?? 0);
+                  const isNextWord = wIdx === wordIndex + 1;
+                  const dimmed =
+                    ghostMode &&
+                    isFocused &&
+                    isFuture &&
+                    !(currentWordDone && isNextWord);
 
-                return (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: word+index combo ensures uniqueness for duplicate words
-                  <WordItem
-                    caretStyle={caretStyle}
-                    dimmed={dimmed}
-                    displayInput={displayInput}
-                    elemRef={isActive ? activeWordRef : undefined}
-                    hasError={hasError}
-                    isActive={isActive}
-                    isPast={isPast}
-                    key={`${word}-${wIdx}`}
-                    word={word}
-                  />
-                );
-              })}
+                  return (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: word+index combo ensures uniqueness for duplicate words
+                    <WordItem
+                      caretStyle={caretStyle}
+                      dimmed={dimmed}
+                      displayInput={displayInput}
+                      elemRef={isActive ? activeWordRef : undefined}
+                      hasError={hasError}
+                      isActive={isActive}
+                      isPast={isPast}
+                      key={`${word}-${wIdx}`}
+                      word={word}
+                    />
+                  );
+                })
+              )}
             </motion.div>
           </LayoutGroup>
           {/* Unfocused: blur overlay with prompt */}
@@ -365,6 +371,35 @@ export function TypingTest(props: TypingTestProps) {
           </>
         )}
       </motion.div>
+    </div>
+  );
+}
+
+// Lightweight placeholder shown while the (server-signed) word list loads, so
+// the first paint isn't a blank gap. Deterministic widths to avoid layout jitter.
+const SKELETON_WIDTHS = [
+  "3.5rem", "5rem", "2.5rem", "4.25rem", "3rem", "5.5rem", "2.75rem", "4rem",
+  "3.25rem", "4.75rem", "2.5rem", "3.75rem", "5.25rem", "3rem", "4.5rem",
+  "2.75rem", "5rem", "3.5rem", "4rem", "2.5rem", "4.75rem", "3.25rem", "2.75rem", "4rem",
+  "3.25rem", "4.75rem", "2.5rem", "3.75rem", "5.25rem", "3rem", "4.5rem",
+];
+
+function WordsSkeleton() {
+  return (
+    <div
+      aria-hidden
+      className="flex flex-wrap gap-x-2.5 gap-y-2"
+      // biome-ignore lint/a11y/useSemanticElements: purely decorative loading placeholder
+      role="presentation"
+    >
+      {SKELETON_WIDTHS.map((w, i) => (
+        <span
+          className="inline-block h-[1.4em] animate-pulse rounded bg-foreground/10"
+          // biome-ignore lint/suspicious/noArrayIndexKey: static decorative list
+          key={i}
+          style={{ width: w }}
+        />
+      ))}
     </div>
   );
 }

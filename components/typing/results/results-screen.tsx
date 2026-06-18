@@ -9,10 +9,10 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Confetti, type ConfettiRef } from "@/components/ui/confetti";
-import { saveTestResult } from "@/lib/actions";
+import { submitTest } from "@/lib/actions";
 import { saveIfPersonalBest } from "@/lib/personal-best";
 import { addTestToHistory } from "@/lib/test-history";
-import type { ResultStats } from "@/lib/types";
+import type { ResultStats, TestSubmission } from "@/lib/types";
 import { isInvalidTestResult } from "@/lib/validate-result";
 import {
   CalculationFormulaPopover,
@@ -26,6 +26,8 @@ interface ResultsScreenProps {
   onNext: () => void;
   onRestart: () => void;
   stats: ResultStats;
+  /** Raw run data for server-side authoritative scoring (null = local only). */
+  submission?: TestSubmission | null;
 }
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
@@ -34,6 +36,7 @@ export function ResultsScreen({
   stats,
   onRestart,
   onNext,
+  submission,
 }: ResultsScreenProps) {
   const {
     wpm,
@@ -79,23 +82,15 @@ export function ResultsScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save to database via server action — runs after render to avoid
-  // setState-during-render errors from revalidateTag's router refresh
+  // Submit the raw run to the server for authoritative scoring. The server
+  // recomputes the score from its own signed word list + the keystroke timing;
+  // the client-computed stats above are display-only. Runs without a server
+  // token (offline / no identity) stay in localStorage only.
   useEffect(() => {
-    if (invalid) return;
-    saveTestResult({
-      wpm,
-      raw,
-      accuracy,
-      consistency,
-      mode,
-      modeDetail,
-      elapsedSeconds,
-      correctChars,
-      incorrectChars,
-      extraChars,
-      missedChars,
-    }).catch(() => {
+    if (invalid || !submission) {
+      return;
+    }
+    submitTest(submission).catch(() => {
       // Silently fail — localStorage is the fallback
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

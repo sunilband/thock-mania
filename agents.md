@@ -105,7 +105,8 @@ The site header contains (left to right):
 - The user menu always shows the avatar pill (anonymous or logged in); anonymous users see "Sign in with Google" inside the dropdown
 
 ### Server Actions
-- `saveTestResult()` — saves a test result, resolves identity from cookie/session server-side
+- `startTest()` — **server** generates the word list (so the player can't choose easy words), signs it into an opaque challenge token (HMAC, `lib/test-challenge.ts`), and returns `{ words, author, token }`. Returns `null` when no identity resolves (client then runs a local, unranked test).
+- `submitTest()` — receives the signed token + the player's raw typed word-inputs + keystroke timestamps. Verifies the token, recomputes the score authoritatively (`lib/score-submission.ts`) against the server's own words, validates keystroke timing, then writes via the **service-role** client. The client-computed score is never trusted or stored.
 - `getTestHistory()` — fetches user's history, resolves identity server-side
 - `migrateAnonymousData()` — migrates anonymous data to logged-in user
 - `getResolvedIdentity()` — returns displayName, avatarUrl, isAnonymous
@@ -141,8 +142,8 @@ The site header contains (left to right):
 
 ### RLS
 - All tables: public SELECT
-- `test_results`: INSERT restricted to `auth.uid() = user_id`
-- `profiles`: UPDATE restricted to `auth.uid() = id`
+- `test_results`: **no client INSERT policy** (migration 004) — clients (anon/authenticated) cannot insert at all. Only the service-role key (`submitTest`) writes results, bypassing RLS. This is what prevents direct `supabase.from('test_results').insert(...)` cheating from the browser console.
+- `profiles`: UPDATE restricted to `auth.uid() = id`; anonymous profile INSERT allowed (display data only, not a cheat vector)
 
 ---
 
@@ -166,15 +167,83 @@ The site header contains (left to right):
 
 ---
 
-## Test Result Saving
+## Anti-Cheat / Score Integrity
 
-1. Test completes → `ResultsScreen` mounts
-2. `validateResult()` runs anti-cheat checks (impossible WPM, flat history, AFK, etc.)
-3. If **valid**:
-   - Always saves to localStorage (`addTestToHistory()`, max 100 entries)
-   - Always checks personal best (`saveIfPersonalBest()`)
-   - Calls `saveTestResult()` server action — identity resolved server-side from cookie/session
-4. If **invalid**: shows "invalid result" screen, no data saved
+**Principle: the server computes every score. The browser's numbers are never trusted.**
+
+A typing test runs in the browser, so the client could always lie about its WPM. Authentication (Supabase/JWT) doesn't help — a *legitimately signed-in* user can still submit a *fake* score. The only defense is to have the server compute the score from inputs it controls. That's what this system does.
+
+### The four layers
+
+1. **Server-owned words.** `startTest()` generates the word list on the server (`lib/server-words.ts`) and signs `{ uid, mode, modeDetail, durationSeconds, words, iat }` into an opaque HMAC token (`lib/test-challenge.ts`, `TEST_SIGNING_SECRET`). The client renders these words and echoes the token back on submit. It cannot swap in easy words, change the mode/duration, submit as another user, or replay a stale token — any change breaks the signature (15-min TTL).
+
+2. **Server-side recomputation.** `submitTest()` ignores any client score. It recomputes WPM / raw / accuracy / character counts from the server's signed `words` + the player's raw `wordInputs`/`typed`/`wordIndex`, using the same `countWpm` the client uses (`lib/score-submission.ts`). Timed runs use the signed `durationSeconds` for elapsed; other modes derive elapsed from the keystroke timeline. Consistency is recomputed from keystroke timing.
+
+3. **Keystroke-timing validation (anti-automation gate).** The client records the timestamp of every character/space keystroke (`keystrokeTimesRef`). The server rejects runs that aren't physically human: non-monotonic timelines, `forwardChars > keystrokes`, keystrokes after a timed clock ends, sustained > 30 chars/sec, > 10% sub-12ms intervals (superhuman), or inter-key interval CV < 0.05 (robotic/constant cadence). This is what stops a script from "typing" correct words instantly.
+
+4. **Locked-down writes + DB constraints.** RLS (migration `004`) removes all client INSERT policies, so a browser cannot `insert` into `test_results` directly with the public key. Only the **service-role** client (`lib/supabase/admin.ts`, used by `submitTest`) can write. CHECK constraints (migration `003`) bound every column as a final backstop. If the service-role key is missing, saves **fail closed** (localStorage only) rather than taking an insecure path.
+
+### Threat → defense
+
+| Attack | Defense |
+|--------|---------|
+| Edit `wpm` in the save request | Server recomputes from typed input; client number ignored |
+| Insert a row directly via the public Supabase key | RLS blocks all client inserts (004); service-role only |
+| Type easy words ("aaa aaa") and submit | Server picks + signs the words; client can't choose them |
+| Script that fills correct words instantly | Keystroke-timing validation (cps, sub-12ms, cadence) |
+| Tamper with the signed token | HMAC signature check fails |
+| Replay an old/another user's token | TTL expiry + uid-match check |
+| Spam many saves | Per-profile rate limit (1.5s) |
+
+### Residual limitation (be honest about this)
+
+Because typing happens on a machine the attacker controls, a determined cheater can still fabricate a *believable keystroke timeline* (correct words spread over realistic, human-variance intervals). The heuristics make this hard, but not impossible. Cheating has moved from "edit one number in devtools" (trivial) to "write a human-like typing simulator" (serious effort). Fully eliminating it would require behavioral/biometric analysis or a trusted client — out of scope. Zen mode has no fixed duration, so it is scored purely from its keystroke timeline.
+
+### Client-side `validateResult()` is UX only
+
+`lib/validate-result.ts` runs in the browser to show the "invalid result" screen for obviously broken runs. It is **not** a security boundary — all real enforcement is server-side.
+
+---
+
+
+
+## Test Result Saving (server-authoritative)
+
+Scores are computed by the **server**, from inputs the server controls. The browser never sends a trusted score.
+
+**Flow:**
+1. Test setup (mount / every reset) → `startTest()` server action:
+   - server generates the word list (`lib/server-words.ts`, from `public/languages/*.json` / quotes),
+   - signs `{ uid, mode, modeDetail, durationSeconds, words, iat }` into an opaque HMAC token (`lib/test-challenge.ts`),
+   - returns `{ words, author, token }`. The client renders these words and stores the token.
+2. While typing, the hook records the **raw keystroke timeline** (`keystrokeTimesRef` — ms offset of every character + space) and the committed `wordInputs`.
+3. Test completes → `ResultsScreen` mounts:
+   - `validateResult()` runs client-side (UX only) → shows "invalid result" screen if it fails.
+   - Always saves to localStorage + checks personal best (client display).
+   - Calls `submitTest({ token, wordInputs, typed, wordIndex, keystrokeTimes })`.
+4. If the run has **no token** (offline / no identity), it is saved to localStorage only — never submitted (fail-closed, no insecure path).
+
+> **No text-swap guarantee:** words are now fetched async from `startTest`. The hook clears the displayed words at the start of every reset and uses a monotonic `wordRequestIdRef` so only the *latest* request's words are ever applied. A slow/superseded response (overlapping resets, StrictMode double-mount) is discarded — the user never sees one word set replaced in place by another (worst case is a brief empty area while loading). "Restart same test" reuses the existing words + token without refetching.
+
+### Server-Side Scoring (the security boundary) — `lib/score-submission.ts`
+
+`submitTest()`:
+1. **Verifies the challenge** — `verifyChallenge(token)` checks the HMAC signature + 15-min expiry. A tampered token (swapped words, changed mode/duration, different user) fails the signature.
+2. **Identity match** — the resolved profile must equal the `uid` the challenge was issued to.
+3. **Recomputes the score** from the server's own `payload.words` + the player's `wordInputs`/`typed`/`wordIndex`, using the SAME `countWpm` the client uses (so honest runs match what the player saw). Produces wpm, raw, accuracy, char breakdown.
+   - elapsed: timed runs use the signed `durationSeconds`; others derive from the keystroke timeline.
+   - consistency: recomputed server-side from the keystroke timing (per-second rate variance).
+4. **Validates keystroke timing** (`validateTiming`) — the real anti-automation gate: monotonic timeline, `forwardChars ≤ keystrokes`, no keystrokes after a timed clock ends, sustained CPS ≤ 30, < 10% sub-12ms intervals (superhuman), and inter-key interval CV ≥ 0.05 (rejects robotic/constant cadence).
+5. **Rate limit** — ≤ 1 save per profile per `MIN_SAVE_INTERVAL_MS` (1500ms).
+6. **Writes via the service-role client** (`lib/supabase/admin.ts`) — the only path that can insert (RLS blocks all client inserts, migration 004).
+
+Defense-in-depth:
+- **RLS lockdown** (migration 004) — clients cannot insert `test_results` directly; only the service role.
+- **DB CHECK constraints** (migration 003) — bounds on wpm/raw/accuracy/consistency/elapsed/chars/mode.
+
+**Why server-owned words matter:** if the client could pick the target text it could "type" trivial words instantly. Generating + signing them server-side means a run can only be graded against text the server chose.
+
+**Residual limitation (inherent to any client-side typing test):** a determined attacker can still fabricate a believable keystroke timeline (correct words spread over realistic, human-variance intervals). This is the accepted boundary — cheating has moved from "edit one number in devtools" to "write a human-like typing simulator," which the timing heuristics make non-trivial. Truly eliminating it would require behavioral/biometric analysis or a trusted client.
 
 ---
 
@@ -243,9 +312,9 @@ All persisted in localStorage with `tc-` prefix:
 - Return JSON with consistent shape: `{ entries: [] }`, `{ error: "..." }`, `{ success: true }`
 
 ### Anti-cheat
-- Client-side validation before any save (`lib/validate-result.ts`)
-- Checks: impossible WPM (>300), impossible raw (>350), impossible CPS (>30), burst spikes (>600), flat WPM history, perfect consistency at speed, AFK detection
-- Invalid results are never saved to localStorage or DB
+- Scores are computed and enforced **server-side**; the client is never trusted. See the dedicated **Anti-Cheat / Score Integrity** section above for the full design.
+- Client-side `validateResult()` (`lib/validate-result.ts`) is UX only (the "invalid result" screen).
+- Key files: `lib/server-words.ts`, `lib/test-challenge.ts`, `lib/score-submission.ts`, `lib/supabase/admin.ts`; migrations `003` (CHECK constraints) and `004` (RLS lockdown).
 
 ### Error Handling
 - Fire-and-forget for non-critical saves (DB write from results screen)
@@ -283,6 +352,8 @@ All persisted in localStorage with `tc-` prefix:
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only** privileged key; the ONLY way `test_results` rows are written (`submitTest` → `lib/supabase/admin.ts`). Never expose to the client. |
+| `TEST_SIGNING_SECRET` | **Server-only** HMAC secret for signing test challenges. Must be stable across all deployments (e.g. `openssl rand -hex 32`). Required in production. |
 
 ---
 

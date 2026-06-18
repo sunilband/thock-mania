@@ -48,6 +48,7 @@
 
 - [About](#about)
 - [Features](#-features)
+- [Anti-Cheat](#-anti-cheat)
 - [Tech Stack](#-tech-stack)
 - [Getting Started](#-getting-started)
 - [Scripts](#-scripts)
@@ -83,9 +84,27 @@
 | **Caret styles** | Line, block, or underline caret |
 | **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, keyboard layout size, sound volume, live WPM, ghost mode |
 | **Haptics** | Optional vibration on supported hardware |
-| **Anti-cheat** | Client-side validation prevents impossible scores from reaching the leaderboard |
+| **Anti-cheat** | Scores are computed and verified **server-side** — the leaderboard only accepts genuine runs (see [Anti-Cheat](#-anti-cheat)) |
 
 Settings and history persist in `localStorage` — no account required. Sign in with Google to unlock cloud history and the leaderboard.
+
+## 🛡 Anti-Cheat
+
+The leaderboard is only worth competing on if the scores are real. Because a typing test runs in your browser, the page *could* lie about your WPM — so **Thock Mania never trusts the score the browser reports. The server computes it.**
+
+Here's how a run is kept honest:
+
+1. **The server picks the words.** When a test starts, the server generates the word list and signs it into a tamper-proof token (HMAC). You type against exactly those words — you can't substitute easier text, and the token can't be altered, reused, or used by someone else without breaking the signature.
+
+2. **The server recomputes your score.** On submit, the browser sends only the raw run — which words you typed and the timestamp of every keystroke. The server recalculates WPM, accuracy, and character counts itself, against its own word list. Whatever number the page displayed is irrelevant.
+
+3. **Keystroke timing must look human.** The server inspects the timing of every keystroke and rejects anything physically impossible — superhuman speed, near-instant bursts, or the perfectly even cadence of an auto-typer. This is what stops a script from "typing" a perfect run in milliseconds.
+
+4. **Only the server can write to the leaderboard.** Database rules (Row Level Security) block the browser from inserting scores directly. Writes happen exclusively through a privileged server key, and column-level constraints reject impossible values as a final backstop.
+
+The result: cheating goes from "edit one number in the dev tools" (which no longer works) to "build a bot that simulates believable human typing." That's a much higher bar. No client-side game can be made 100% tamper-proof, but trivial cheating is shut down and the leaderboard reflects genuine runs.
+
+> Self-hosting? The leaderboard needs `SUPABASE_SERVICE_ROLE_KEY` and `TEST_SIGNING_SECRET` set, plus migrations `003`/`004` applied (see [Getting Started](#-getting-started)). Without them, runs save locally but aren't submitted.
 
 ## 🛠 Tech Stack
 
@@ -123,9 +142,18 @@ Settings and history persist in `localStorage` — no account required. Sign in 
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
+
+   # Required for the leaderboard (server-side anti-cheat). Without these,
+   # runs save to localStorage only and are never submitted.
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-secret   # server-only, never expose
+   TEST_SIGNING_SECRET=a-stable-random-string                    # e.g. `openssl rand -hex 32`
    ```
 
-4. Run the SQL migration in your Supabase SQL Editor (see `supabase/migrations/001_initial_schema.sql`).
+4. Run the SQL migrations in your Supabase SQL Editor, in order:
+   - `supabase/migrations/001_initial_schema.sql`
+   - `supabase/migrations/002_anonymous_users.sql`
+   - `supabase/migrations/003_score_integrity.sql` (anti-cheat value constraints)
+   - `supabase/migrations/004_lock_down_result_inserts.sql` (anti-cheat: server-only writes)
 
 5. Enable Google as an auth provider in Supabase → Authentication → Providers.
 

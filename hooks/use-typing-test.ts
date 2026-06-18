@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTest } from "@/lib/actions";
 import { fetchLanguageWords } from "@/lib/languages";
 import { getQuote, type QuoteLength } from "@/lib/quotes";
 import {
@@ -21,7 +22,7 @@ import {
   WORD_OPTION_STORAGE_KEY,
   type WordOption,
 } from "@/lib/test-storage";
-import type { ResultStats, WpmSnapshot } from "@/lib/types";
+import type { ResultStats, TestSubmission, WpmSnapshot } from "@/lib/types";
 import {
   type Difficulty,
   generateWords,
@@ -110,6 +111,21 @@ export function useTypingTest({
   const elapsedSecondsRef = useRef(0);
   const correctedErrorsRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  // ── Anti-cheat: server challenge token + raw keystroke timeline ───────────
+  // The server issues `tokenRef` (the signed word list) and grades the run from
+  // `keystrokeTimesRef` (ms offset of every character/space keystroke). These
+  // are what the server recomputes the score from — the client never sends a
+  // trusted score. `startTimeMsRef` is a synchronous mirror of the test start
+  // so the very first keystroke gets an accurate offset.
+  const tokenRef = useRef<string | null>(null);
+  const keystrokeTimesRef = useRef<number[]>([]);
+  const startTimeMsRef = useRef<number | null>(null);
+  // Monotonic id for word-load requests. Because words are now fetched async,
+  // overlapping resets (rapid option changes, StrictMode double-mount, a slow
+  // request resolving after a newer one) could otherwise let a stale response
+  // overwrite the words already on screen — a visible text swap. Only the
+  // latest request's words are ever applied.
+  const wordRequestIdRef = useRef(0);
   const wordsContainerRef = useRef<HTMLDivElement>(null);
   const activeWordRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -235,17 +251,60 @@ export function useTypingTest({
       const wc = m === "time" ? 200 : m === "words" ? wo : 100;
 
       setQuoteAuthor(null);
-      if (m === "quote") {
-        const { words: newWords, author } = getQuote(ql);
-        setWords(newWords);
-        setQuoteAuthor(author);
-      } else {
-        const newWords = await buildWords(wc, {
+      const detail =
+        m === "time"
+          ? String(to)
+          : m === "words"
+            ? String(wo)
+            : m === "quote"
+              ? ql
+              : "";
+      // Claim the latest request slot and drop any words currently on screen so
+      // nothing stale is ever shown while the new (signed) set is fetched.
+      const reqId = ++wordRequestIdRef.current;
+      setWords([]);
+      // Ask the server for a signed word list. The server owns the words so the
+      // run can be graded authoritatively. If it fails (offline / no identity),
+      // fall back to locally generated words with no token — such runs still
+      // work but are never submitted to the leaderboard (localStorage only).
+      let issued: Awaited<ReturnType<typeof startTest>> = null;
+      try {
+        issued = await startTest({
+          mode: m,
+          modeDetail: detail,
           punctuation: p,
           numbers: n,
           difficulty: d,
         });
-        setWords(newWords);
+      } catch {
+        issued = null;
+      }
+      // A newer reset superseded this one — discard this stale response so it
+      // can't replace the words the newer reset is about to show.
+      if (reqId !== wordRequestIdRef.current) {
+        return;
+      }
+      if (issued) {
+        tokenRef.current = issued.token;
+        setWords(issued.words);
+        setQuoteAuthor(issued.author);
+      } else {
+        tokenRef.current = null;
+        if (m === "quote") {
+          const { words: newWords, author } = getQuote(ql);
+          setWords(newWords);
+          setQuoteAuthor(author);
+        } else {
+          const newWords = await buildWords(wc, {
+            punctuation: p,
+            numbers: n,
+            difficulty: d,
+          });
+          if (reqId !== wordRequestIdRef.current) {
+            return;
+          }
+          setWords(newWords);
+        }
       }
       setTyped("");
       setWordIndex(0);
@@ -262,6 +321,9 @@ export function useTypingTest({
       errorsThisSecondRef.current = 0;
       elapsedSecondsRef.current = 0;
       correctedErrorsRef.current = 0;
+      keystrokeTimesRef.current = [];
+      startTimeMsRef.current = null;
+      submissionRef.current = null;
       if (m === "time") {
         setTimeLeft(to);
       }
@@ -351,22 +413,17 @@ export function useTypingTest({
       setDifficulty(storedDifficulty);
     }
 
-    const wc = m === "time" ? 200 : m === "words" ? wo : 100;
-    if (m === "quote") {
-      const { words: initWords, author } = getQuote(ql);
-      setWords(initWords);
-      setQuoteAuthor(author);
-    } else {
-      buildWords(wc, {
-        punctuation: p,
-        numbers: n,
-        difficulty: d,
-      }).then((w) => setWords(w));
-    }
-    if (m === "time") {
-      setTimeLeft(to);
-    }
-    inputRef.current?.focus();
+    // Build the first word set via the server (signed) word list, same path as
+    // every reset. Falls back to local words if the server is unreachable.
+    void resetTestWith({
+      mode: m,
+      timeOption: to,
+      wordOption: wo,
+      quoteLength: ql,
+      punctuation: p,
+      numbers: n,
+      difficulty: d,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -492,7 +549,9 @@ export function useTypingTest({
     startedRef.current = true;
     finishedRef.current = false;
     setStarted(true);
-    setStartTime(Date.now());
+    const startMsNow = Date.now();
+    startTimeMsRef.current = startMsNow;
+    setStartTime(startMsNow);
     setShowControls(false);
     onTypingActiveChange?.(true);
 
@@ -583,6 +642,9 @@ export function useTypingTest({
     }
 
     allTypedRef.current += 1; // count the space keystroke so raw >= wpm
+    keystrokeTimesRef.current.push(
+      Date.now() - (startTimeMsRef.current ?? Date.now())
+    );
 
     for (let i = 0; i < Math.min(currentTyped.length, currentWord.length); i++) {
       if (currentTyped[i] !== currentWord[i]) {
@@ -652,6 +714,9 @@ export function useTypingTest({
       const currentTyped = typedRef.current;
       const currentWord = words[idx];
       allTypedRef.current += 1;
+      keystrokeTimesRef.current.push(
+        Date.now() - (startTimeMsRef.current ?? Date.now())
+      );
       const nextTyped = currentTyped + char;
       typedRef.current = nextTyped;
       setTyped(nextTyped);
@@ -888,6 +953,9 @@ export function useTypingTest({
 
   // ── Frozen stats (computed inline, not via effect) ────────────────────────
   const frozenStatsRef = useRef<ResultStats | null>(null);
+  // Raw run data for server-side authoritative scoring (null when the run has
+  // no server token — e.g. offline fallback — so it is saved locally only).
+  const submissionRef = useRef<TestSubmission | null>(null);
 
   if (finished && !frozenStatsRef.current) {
     const elapsed = startTime
@@ -932,9 +1000,21 @@ export function useTypingTest({
               : "",
       wpmHistory,
     };
+    // Build the raw submission for server-side scoring. Only when a server
+    // token exists (online + identity resolved); otherwise the run is local.
+    submissionRef.current = tokenRef.current
+      ? {
+        token: tokenRef.current,
+        wordInputs,
+        typed,
+        wordIndex,
+        keystrokeTimes: keystrokeTimesRef.current,
+      }
+      : null;
   }
   if (!finished) {
     frozenStatsRef.current = null;
+    submissionRef.current = null;
   }
 
   // Resets all typing state but keeps the current word list (for "restart same test").
@@ -960,6 +1040,9 @@ export function useTypingTest({
     errorsThisSecondRef.current = 0;
     elapsedSecondsRef.current = 0;
     correctedErrorsRef.current = 0;
+    keystrokeTimesRef.current = [];
+    startTimeMsRef.current = null;
+    submissionRef.current = null;
     if (mode === "time") {
       setTimeLeft(timeOption);
     }
@@ -1096,6 +1179,7 @@ export function useTypingTest({
     controlsVisible,
     showResults,
     frozenStats: frozenStatsRef.current,
+    submission: submissionRef.current,
     // Refs
     inputRef,
     wordsContainerRef,
