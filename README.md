@@ -104,6 +104,8 @@ Here's how a run is kept honest:
 
 The result: cheating goes from "edit one number in the dev tools" (which no longer works) to "build a bot that simulates believable human typing." That's a much higher bar. No client-side game can be made 100% tamper-proof, but trivial cheating is shut down and the leaderboard reflects genuine runs.
 
+> Full write-up: see [`docs/SECURITY-RCA.md`](docs/SECURITY-RCA.md) for the root-cause analysis of the vulnerabilities and exactly how each was fixed.
+
 > Self-hosting? The leaderboard needs `SUPABASE_SERVICE_ROLE_KEY` and `TEST_SIGNING_SECRET` set, plus migrations `003`/`004` applied (see [Getting Started](#-getting-started)). Without them, runs save locally but aren't submitted.
 
 ## 🛠 Tech Stack
