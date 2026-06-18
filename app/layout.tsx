@@ -6,6 +6,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { IdentityProvider } from "@/components/auth/identity-provider";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { UpdateToast } from "@/components/pwa/update-toast";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { getIdentityData } from "@/lib/get-identity";
@@ -159,6 +160,7 @@ export default function RootLayout({
           reloadOnOnline
           swUrl="/serwist/sw.js"
         >
+          <UpdateToast />
           <ThemeProvider>
             <Suspense>
               <IdentityProvider identityPromise={identityPromise}>
