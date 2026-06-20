@@ -8,13 +8,13 @@ export const KEYBOARD_SIZE_OPTIONS: {
 }[] = [
         {
             id: "full",
-            label: "100% (Full-Size)",
+            label: "Full-Size",
             keys: "104–108 keys",
             description: "Alphanumeric, function row, navigation cluster, and numpad.",
         },
         {
             id: "1800",
-            label: "96% / 1800-Compact",
+            label: "96%",
             keys: "96–103 keys",
             description: "Keeps the numpad and arrows, compressed without the gaps.",
         },
