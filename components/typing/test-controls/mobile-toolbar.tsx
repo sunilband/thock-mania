@@ -74,6 +74,7 @@ export function MobileToolbar({
   onPunctuationToggle,
   onNumbersToggle,
   onDifficultyToggle,
+  showModifiers,
 }: TestControlsProps) {
   const activeMode = MODES.find((m) => m.value === mode)
   const ActiveIcon = activeMode?.icon ?? Clock
@@ -93,10 +94,10 @@ export function MobileToolbar({
   const subLabel = getSubLabel()
 
   const activeModifiers = [
-    punctuation && "@",
-    numbers && "#",
-    difficulty === "easy" && "easy",
-    difficulty === "hard" && "hard",
+    showModifiers && punctuation && "@",
+    showModifiers && numbers && "#",
+    showModifiers && difficulty === "easy" && "easy",
+    showModifiers && difficulty === "hard" && "hard",
   ].filter(Boolean)
 
   return (
@@ -215,37 +216,41 @@ export function MobileToolbar({
               </DrawerSection>
             )}
 
-            {/* Modifiers */}
-            <DrawerSection title="Modifiers">
-              <div className="flex flex-wrap gap-1.5">
-                <DrawerChip active={punctuation} onClick={onPunctuationToggle}>
-                  <At size={14} weight="duotone" />
-                  punctuation
-                </DrawerChip>
-                <DrawerChip active={numbers} onClick={onNumbersToggle}>
-                  <Hash size={14} weight="duotone" />
-                  numbers
-                </DrawerChip>
-              </div>
-            </DrawerSection>
+            {/* Modifiers — hidden for themed topics, which ignore them */}
+            {showModifiers && (
+              <DrawerSection title="Modifiers">
+                <div className="flex flex-wrap gap-1.5">
+                  <DrawerChip active={punctuation} onClick={onPunctuationToggle}>
+                    <At size={14} weight="duotone" />
+                    punctuation
+                  </DrawerChip>
+                  <DrawerChip active={numbers} onClick={onNumbersToggle}>
+                    <Hash size={14} weight="duotone" />
+                    numbers
+                  </DrawerChip>
+                </div>
+              </DrawerSection>
+            )}
 
             {/* Difficulty */}
-            <DrawerSection title="Difficulty">
-              <div className="flex flex-wrap gap-1.5">
-                <DrawerChip
-                  active={difficulty === "easy"}
-                  onClick={() => onDifficultyToggle("easy")}
-                >
-                  easy
-                </DrawerChip>
-                <DrawerChip
-                  active={difficulty === "hard"}
-                  onClick={() => onDifficultyToggle("hard")}
-                >
-                  hard
-                </DrawerChip>
-              </div>
-            </DrawerSection>
+            {showModifiers && (
+              <DrawerSection title="Difficulty">
+                <div className="flex flex-wrap gap-1.5">
+                  <DrawerChip
+                    active={difficulty === "easy"}
+                    onClick={() => onDifficultyToggle("easy")}
+                  >
+                    easy
+                  </DrawerChip>
+                  <DrawerChip
+                    active={difficulty === "hard"}
+                    onClick={() => onDifficultyToggle("hard")}
+                  >
+                    hard
+                  </DrawerChip>
+                </div>
+              </DrawerSection>
+            )}
           </div>
         </DrawerContent>
       </DrawerPopup>

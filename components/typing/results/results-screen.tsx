@@ -51,6 +51,7 @@ export function ResultsScreen({
     correctedErrors,
     mode,
     modeDetail,
+    ranked,
     wpmHistory,
   } = stats;
 
@@ -59,7 +60,9 @@ export function ResultsScreen({
 
   const pb = useMemo(
     () =>
-      invalid ? null : saveIfPersonalBest(mode, modeDetail, wpm, accuracy),
+      invalid || !ranked
+        ? null
+        : saveIfPersonalBest(mode, modeDetail, wpm, accuracy),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -206,6 +209,20 @@ export function ResultsScreen({
           </motion.span>
         </div>
       </div>
+
+      {/* Practice notice — themed topics never reach the leaderboard. */}
+      {!ranked && (
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-center"
+          initial={{ opacity: 0, y: 6 }}
+          transition={{ delay: 0.35, duration: 0.35, ease }}
+        >
+          <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-[11px] text-muted-foreground">
+            Practice run · not added to the leaderboard
+          </span>
+        </motion.div>
+      )}
 
       {/* Personal best badge — springs in with overshoot */}
       {pb?.isNewPb && (

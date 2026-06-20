@@ -79,9 +79,37 @@ ThemeProvider (dark/light/system via next-themes)
 The site header contains (left to right):
 1. **Logo** — "Thock Mania" text + icon (click resets test)
 2. **Visitor count** — animated number ("X thocks and counting"), next to logo
-3. **Settings button** — gear icon with ⌘K shortcut hint
-4. **Leaderboard button** — trophy icon, always visible (routes to /leaderboard)
-5. **User menu** — Sign in button (if logged out) OR avatar pill with dropdown containing: profile info, History button, Sign out
+3. **Topic dropdown** — book icon; picks the text content/topic (see **Topics** below). Hidden on the smallest screens (`hidden sm:block`). Highlights in the accent color when a non-default (unranked) topic is active.
+4. **Settings button** — gear icon with ⌘K shortcut hint
+5. **Leaderboard button** — trophy icon, always visible (routes to /leaderboard)
+6. **User menu** — Sign in button (if logged out) OR avatar pill with dropdown containing: profile info, History button, Sign out
+
+A **Caps Lock indicator** (`components/typing/caps-lock-indicator.tsx`) is mounted once in `AppChrome` and shows a fixed bottom-left badge ("Caps Lock is on") only while Caps Lock is active. State is read via `KeyboardEvent.getModifierState("CapsLock")` on window `keydown`/`keyup` — the only way browsers expose it, so it can't reflect a caps lock that was on *before* the first keypress (it syncs on the next key event).
+
+---
+
+## Topics (text content selector)
+
+A **topic** is the content source for the typed text, chosen from the header **Topic dropdown** (`components/typing/topic-dropdown.tsx`). It is orthogonal to the test **mode** (time/words/quote/zen), which still controls length/duration.
+
+Options (`lib/topic-options.ts`, `TOPIC_OPTIONS`):
+- `random_words` (**default, the only ranked/leaderboard-eligible topic**)
+- `random_topics` (picks a random themed topic each test)
+- `famous_quotes`, `songs`, `pop_culture`, `history`, `science`, `technology`, `nature`, `sports`
+
+### Ranked vs unranked
+- **Only `random_words` runs count on the leaderboard.** Every other topic is a practice run. `isRankedTopic(topic)` (`lib/topic-options.ts`) is the single source of truth (`true` only for `random_words`/undefined).
+- This is **server-enforced**: `startTest` signs `ranked` into the challenge token (`lib/test-challenge.ts`). `submitTest` early-returns `{ success: true, unranked: true }` for `!payload.ranked` and **never writes the row** — so a tampered client can't promote a themed run onto the leaderboard, and no DB column/migration or leaderboard-query change is needed (unranked runs simply never reach `test_results`).
+- The client also gates this: the hook only builds `submissionRef` when the run has a token AND `isRankedTopic(topic)`; otherwise `submitTest` isn't even called. `ResultStats.ranked` carries the flag so the results screen shows a "Practice run · not added to the leaderboard" badge and skips the personal-best save.
+- **UX heads-up**: selecting a non-default topic shows a transient bottom-center popup ("…is practice only…"); the dropdown footer always notes that only Random words counts.
+
+### Content & generation
+- Topic inventories: `data/topics.json` (themed passages, one array per topic id) + `data/quotes.json` reused for `famous_quotes`. To add variety, edit the JSON — no code change.
+- `getTopicWords(topicId, count)` (`lib/topics.ts`) shuffles passages and concatenates their words to length `count` (wrapping if needed); `random_topics` resolves to a random themed id; unknown ids fall back to `science`.
+- **Clean-text filter**: passages are filtered at module load to plain typeable English only (`/^[A-Za-z][A-Za-z .,!?;:'"()-]*$/`) — drops anything with digits, accented/foreign letters, or curly quotes/dashes (mostly affects the reused quotes). Empty/all-filtered topics return `[]` rather than looping.
+- **`lib/topics.ts` is `server-only`** — themed content is generated server-side in `startTest` and only the ~100–200 words for that one test are sent to the client. The full inventory is **never shipped to the browser**. (The offline/no-identity fallback therefore uses local random words, not themed text — unranked anyway.)
+- When a themed topic is active, the test controls **hide the punctuation/numbers/easy/hard modifiers** (`showModifiers` prop on `TestControls`), since `generateServerWords` ignores those for topic content.
+- Self-check: `lib/topics.check.ts` (run `bun --conditions react-server lib/topics.check.ts`) asserts correct length, non-empty/clean output, and wrap-around.
 
 ---
 
@@ -105,8 +133,8 @@ The site header contains (left to right):
 - The user menu always shows the avatar pill (anonymous or logged in); anonymous users see "Sign in with Google" inside the dropdown
 
 ### Server Actions
-- `startTest()` — **server** generates the word list (so the player can't choose easy words), signs it into an opaque challenge token (HMAC, `lib/test-challenge.ts`), and returns `{ words, author, token }`. Returns `null` when no identity resolves (client then runs a local, unranked test).
-- `submitTest()` — receives the signed token + the player's raw typed word-inputs + keystroke timestamps. Verifies the token, recomputes the score authoritatively (`lib/score-submission.ts`) against the server's own words, validates keystroke timing, then writes via the **service-role** client. The client-computed score is never trusted or stored.
+- `startTest()` — **server** generates the word list (so the player can't choose easy words), signs it into an opaque challenge token (HMAC, `lib/test-challenge.ts`), and returns `{ words, author, token }`. Takes an optional `topic` (content source); non-default topics produce themed text and sign `ranked: false`. Returns `null` when no identity resolves (client then runs a local, unranked test).
+- `submitTest()` — receives the signed token + the player's raw typed word-inputs + keystroke timestamps. Verifies the token, then: if the challenge is `!ranked` (themed topic) it accepts but **never persists** the run; otherwise it recomputes the score authoritatively (`lib/score-submission.ts`) against the server's own words, validates keystroke timing, then writes via the **service-role** client. The client-computed score is never trusted or stored.
 - `getTestHistory()` — fetches user's history, resolves identity server-side
 - `migrateAnonymousData()` — migrates anonymous data to logged-in user
 - `getResolvedIdentity()` — returns displayName, avatarUrl, isAnonymous
@@ -175,7 +203,7 @@ A typing test runs in the browser, so the client could always lie about its WPM.
 
 ### The four layers
 
-1. **Server-owned words.** `startTest()` generates the word list on the server (`lib/server-words.ts`) and signs `{ uid, mode, modeDetail, durationSeconds, words, iat }` into an opaque HMAC token (`lib/test-challenge.ts`, `TEST_SIGNING_SECRET`). The client renders these words and echoes the token back on submit. It cannot swap in easy words, change the mode/duration, submit as another user, or replay a stale token — any change breaks the signature (15-min TTL).
+1. **Server-owned words.** `startTest()` generates the word list on the server (`lib/server-words.ts`) and signs `{ uid, mode, modeDetail, durationSeconds, words, ranked, iat }` into an opaque HMAC token (`lib/test-challenge.ts`, `TEST_SIGNING_SECRET`). The client renders these words and echoes the token back on submit. It cannot swap in easy words, change the mode/duration, submit as another user, flip a practice (themed-topic) run into a ranked one, or replay a stale token — any change breaks the signature (15-min TTL).
 
 2. **Server-side recomputation.** `submitTest()` ignores any client score. It recomputes WPM / raw / accuracy / character counts from the server's signed `words` + the player's raw `wordInputs`/`typed`/`wordIndex`, using the same `countWpm` the client uses (`lib/score-submission.ts`). Timed runs use the signed `durationSeconds` for elapsed; other modes derive elapsed from the keystroke timeline. Consistency is recomputed from keystroke timing.
 
@@ -194,6 +222,7 @@ A typing test runs in the browser, so the client could always lie about its WPM.
 | Tamper with the signed token | HMAC signature check fails |
 | Replay an old/another user's token | TTL expiry + uid-match check |
 | Spam many saves | Per-profile rate limit (1.5s) |
+| Submit a themed (practice) run as ranked | `ranked` is signed into the token; `submitTest` refuses to persist `!ranked` runs |
 
 ### Residual limitation (be honest about this)
 
@@ -270,6 +299,9 @@ All persisted in localStorage with `tc-` prefix:
 | `tc-punctuation` | true/false |
 | `tc-numbers` | true/false |
 | `tc-difficulty` | easy, hard |
+| `tc-topic` | random_words (default), random_topics, famous_quotes, songs, pop_culture, history, science, technology, nature, sports |
+
+> Note: `tc-topic` is owned by **SettingsProvider** (so the header dropdown can read/set it), unlike the other test-mode options (`tc-test-mode`, `tc-time-option`, etc.) which live in the typing hook + `lib/test-storage.ts`. The hook receives `topic` as a prop from settings and resets the test when it changes.
 
 ---
 
@@ -314,7 +346,7 @@ All persisted in localStorage with `tc-` prefix:
 ### Anti-cheat
 - Scores are computed and enforced **server-side**; the client is never trusted. See the dedicated **Anti-Cheat / Score Integrity** section above for the full design.
 - Client-side `validateResult()` (`lib/validate-result.ts`) is UX only (the "invalid result" screen).
-- Key files: `lib/server-words.ts`, `lib/test-challenge.ts`, `lib/score-submission.ts`, `lib/supabase/admin.ts`; migrations `003` (CHECK constraints) and `004` (RLS lockdown).
+- Key files: `lib/server-words.ts`, `lib/test-challenge.ts`, `lib/score-submission.ts`, `lib/supabase/admin.ts`, `lib/topic-options.ts` (ranked vs unranked), `lib/topics.ts` (server-only themed content); migrations `003` (CHECK constraints) and `004` (RLS lockdown).
 
 ### Error Handling
 - Fire-and-forget for non-critical saves (DB write from results screen)

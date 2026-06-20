@@ -22,6 +22,11 @@ import {
   WORD_OPTION_STORAGE_KEY,
   type WordOption,
 } from "@/lib/test-storage";
+import {
+  DEFAULT_TOPIC,
+  isRankedTopic,
+  type TopicId,
+} from "@/lib/topic-options";
 import type { ResultStats, TestSubmission, WpmSnapshot } from "@/lib/types";
 import {
   type Difficulty,
@@ -51,6 +56,8 @@ interface UseTypingTestProps {
   onTypingActiveChange?: (active: boolean) => void;
   onWrongKey?: () => void;
   pauseTypingInputRefocus?: boolean;
+  /** content source (from settings). Non-default topics are unranked. */
+  topic?: TopicId;
 }
 
 export function useTypingTest({
@@ -60,6 +67,7 @@ export function useTypingTest({
   onFocusChange,
   onWrongKey,
   pauseTypingInputRefocus = false,
+  topic = DEFAULT_TOPIC,
 }: UseTypingTestProps) {
   const pauseRefocusRef = useRef(false);
   pauseRefocusRef.current = pauseTypingInputRefocus;
@@ -302,6 +310,7 @@ export function useTypingTest({
         issued = await startTest({
           mode: m,
           modeDetail: detail,
+          topic,
           punctuation: p,
           numbers: n,
           difficulty: d,
@@ -320,7 +329,11 @@ export function useTypingTest({
         setQuoteAuthor(issued.author);
       } else {
         tokenRef.current = null;
-        if (m === "quote") {
+        // Offline / no-identity fallback. Themed-topic content lives server-side
+        // only (so the whole inventory never ships to the browser), so when the
+        // server is unreachable we can't show themed words — fall back to a
+        // local random-word run. It's unranked and never submitted anyway.
+        if (m === "quote" && isRankedTopic(topic)) {
           const { words: newWords, author } = getQuote(ql);
           setWords(newWords);
           setQuoteAuthor(author);
@@ -380,6 +393,7 @@ export function useTypingTest({
       punctuation,
       numbers,
       difficulty,
+      topic,
       buildWords,
       onFinished,
       onTypingActiveChange,
@@ -390,7 +404,6 @@ export function useTypingTest({
     () => resetTestWith(),
     [resetTestWith]
   );
-
   const resetTest = useCallback(
     (overrides: ResetOverrides = {}) => {
       if (resetAnimRef.current) {
@@ -406,6 +419,19 @@ export function useTypingTest({
     },
     [resetTestWith]
   );
+
+  // Reset when the topic (chosen in the header dropdown) changes. The topic
+  // lives in settings/global state, so it can change outside the in-hook option
+  // handlers; `topicRef` skips the initial mount (the mount effect already
+  // builds the first word set).
+  const topicRef = useRef(topic);
+  useEffect(() => {
+    if (topicRef.current === topic) {
+      return;
+    }
+    topicRef.current = topic;
+    resetTest({});
+  }, [topic, resetTest]);
 
   // One-time mount — read persisted options and build the first word set.
   useEffect(() => {
@@ -680,7 +706,11 @@ export function useTypingTest({
       Date.now() - (startTimeMsRef.current ?? Date.now())
     );
 
-    for (let i = 0; i < Math.min(currentTyped.length, currentWord.length); i++) {
+    for (
+      let i = 0;
+      i < Math.min(currentTyped.length, currentWord.length);
+      i++
+    ) {
       if (currentTyped[i] !== currentWord[i]) {
         errorsThisSecondRef.current++;
       }
@@ -1086,19 +1116,22 @@ export function useTypingTest({
             : mode === "quote"
               ? quoteLength
               : "",
+      ranked: isRankedTopic(topic),
       wpmHistory,
     };
     // Build the raw submission for server-side scoring. Only when a server
-    // token exists (online + identity resolved); otherwise the run is local.
-    submissionRef.current = tokenRef.current
-      ? {
-        token: tokenRef.current,
-        wordInputs,
-        typed,
-        wordIndex,
-        keystrokeTimes: keystrokeTimesRef.current,
-      }
-      : null;
+    // token exists (online + identity resolved) AND the run is ranked — themed
+    // topics are practice only and are never submitted to the leaderboard.
+    submissionRef.current =
+      tokenRef.current && isRankedTopic(topic)
+        ? {
+          token: tokenRef.current,
+          wordInputs,
+          typed,
+          wordIndex,
+          keystrokeTimes: keystrokeTimesRef.current,
+        }
+        : null;
   }
   if (!finished) {
     frozenStatsRef.current = null;

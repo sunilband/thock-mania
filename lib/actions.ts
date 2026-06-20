@@ -4,16 +4,17 @@ import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { ANON_UID_COOKIE } from "@/lib/constants";
 import { getLeaderboardData } from "@/lib/leaderboard";
-import { createPublicClient } from "@/lib/supabase/public";
-import { resolveUser } from "@/lib/supabase/resolve-user";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { scoreSubmission } from "@/lib/score-submission";
 import { generateServerWords, type ServerTestMode } from "@/lib/server-words";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
+import { resolveUser } from "@/lib/supabase/resolve-user";
+import { createClient } from "@/lib/supabase/server";
 import { createChallenge, verifyChallenge } from "@/lib/test-challenge";
+import { isRankedTopic } from "@/lib/topic-options";
 import type { TestSubmission } from "@/lib/types";
-import type { Difficulty } from "@/lib/words";
 import { getVisitorCount } from "@/lib/visitor-count";
+import type { Difficulty } from "@/lib/words";
 
 // Reject more than one save per profile inside this window — a genuine test
 // takes at least a couple of seconds plus reading time, so rapid-fire inserts
@@ -21,18 +22,20 @@ import { getVisitorCount } from "@/lib/visitor-count";
 const MIN_SAVE_INTERVAL_MS = 1500;
 
 export interface StartTestInput {
+    difficulty?: Difficulty;
     mode: ServerTestMode;
     modeDetail: string;
-    punctuation?: boolean;
     numbers?: boolean;
-    difficulty?: Difficulty;
+    punctuation?: boolean;
+    /** content source; non-default topics produce unranked themed text */
+    topic?: string;
 }
 
 export interface StartTestResult {
-    words: string[];
     author: string | null;
     /** opaque signed challenge — echoed back unchanged on submit */
     token: string;
+    words: string[];
 }
 
 /**
@@ -52,6 +55,7 @@ export async function startTest(
     const { words, author } = generateServerWords({
         mode: input.mode,
         modeDetail: input.modeDetail,
+        topic: input.topic,
         punctuation: input.punctuation,
         numbers: input.numbers,
         difficulty: input.difficulty,
@@ -66,6 +70,7 @@ export async function startTest(
         modeDetail: input.modeDetail,
         durationSeconds,
         words,
+        ranked: isRankedTopic(input.topic),
     });
 
     return { words, author, token };
@@ -93,6 +98,14 @@ export async function submitTest(input: SubmitTestInput) {
     }
     if (resolved.profileId !== payload.uid) {
         return { success: false, error: "identity_mismatch" } as const;
+    }
+
+    // Themed-topic / practice runs are never leaderboard-eligible. The `ranked`
+    // flag is part of the SIGNED challenge, so a tampered client cannot flip a
+    // practice run into a ranked one. We accept the submission but never persist
+    // it — there is simply no DB row, so it can't reach the leaderboard.
+    if (!payload.ranked) {
+        return { success: true, unranked: true } as const;
     }
 
     // 3. Recompute the score authoritatively from server words + raw input.
@@ -157,7 +170,9 @@ export async function submitTest(input: SubmitTestInput) {
 
 export async function getTestHistory() {
     const resolved = await resolveUser();
-    if (!resolved) return [];
+    if (!resolved) {
+        return [];
+    }
 
     const supabase = await createClient();
 
@@ -168,7 +183,9 @@ export async function getTestHistory() {
         .order("created_at", { ascending: false })
         .limit(100);
 
-    if (error) return [];
+    if (error) {
+        return [];
+    }
 
     return (data ?? []).map((row: Record<string, unknown>) => ({
         wpm: row.wpm as number,
@@ -187,18 +204,24 @@ export async function migrateAnonymousData() {
     const {
         data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { success: false };
+    if (!user) {
+        return { success: false };
+    }
 
     const cookieStore = await cookies();
     const anonUid = cookieStore.get(ANON_UID_COOKIE)?.value;
-    if (!anonUid) return { success: true }; // Nothing to migrate
+    if (!anonUid) {
+        return { success: true }; // Nothing to migrate
+    }
 
     const { error } = await supabase.rpc("migrate_anonymous_to_user", {
         p_anonymous_uid: anonUid,
         p_user_id: user.id,
     });
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+        return { success: false, error: error.message };
+    }
 
     // Invalidate leaderboard since user IDs changed for migrated scores
     revalidateTag("leaderboard", { expire: 0 });
@@ -208,7 +231,9 @@ export async function migrateAnonymousData() {
 
 export async function getResolvedIdentity() {
     const resolved = await resolveUser();
-    if (!resolved) return null;
+    if (!resolved) {
+        return null;
+    }
     return {
         displayName: resolved.displayName,
         avatarUrl: resolved.avatarUrl,
@@ -220,7 +245,7 @@ export async function getResolvedIdentity() {
 
 export async function fetchLeaderboard(
     period: "global" | "weekly" | "daily" = "global",
-    mode: string = "all"
+    mode = "all"
 ) {
     return getLeaderboardData(period, mode);
 }
@@ -234,7 +259,9 @@ export async function fetchVisitorCount() {
 export async function incrementVisitorCount() {
     const supabase = createPublicClient();
     const { data, error } = await supabase.rpc("increment_visitor_count");
-    if (error) return 0;
+    if (error) {
+        return 0;
+    }
 
     // Invalidate visitor count cache so subsequent reads get the new value
     revalidateTag("visitor-count", { expire: 0 });

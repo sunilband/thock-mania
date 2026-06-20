@@ -29,34 +29,37 @@ export function DesktopToolbar({
   onPunctuationToggle,
   onNumbersToggle,
   onDifficultyToggle,
+  showModifiers,
 }: TestControlsProps) {
   return (
     <LayoutGroup id="toolbar">
       <div className="flex items-center gap-2">
-        {/* Toggles */}
-        <div className={groupClass}>
-          <Toggle active={punctuation} onClick={onPunctuationToggle}>
-            <AtIcon size={13} weight="duotone" />
-            punctuation
-          </Toggle>
-          <Toggle active={numbers} onClick={onNumbersToggle}>
-            <HashIcon size={13} weight="duotone" />
-            numbers
-          </Toggle>
-          <Sep />
-          <Toggle
-            active={difficulty === "easy"}
-            onClick={() => onDifficultyToggle("easy")}
-          >
-            easy
-          </Toggle>
-          <Toggle
-            active={difficulty === "hard"}
-            onClick={() => onDifficultyToggle("hard")}
-          >
-            hard
-          </Toggle>
-        </div>
+        {/* Toggles — hidden for themed topics, which ignore these modifiers */}
+        {showModifiers && (
+          <div className={groupClass}>
+            <Toggle active={punctuation} onClick={onPunctuationToggle}>
+              <AtIcon size={13} weight="duotone" />
+              punctuation
+            </Toggle>
+            <Toggle active={numbers} onClick={onNumbersToggle}>
+              <HashIcon size={13} weight="duotone" />
+              numbers
+            </Toggle>
+            <Sep />
+            <Toggle
+              active={difficulty === "easy"}
+              onClick={() => onDifficultyToggle("easy")}
+            >
+              easy
+            </Toggle>
+            <Toggle
+              active={difficulty === "hard"}
+              onClick={() => onDifficultyToggle("hard")}
+            >
+              hard
+            </Toggle>
+          </div>
+        )}
 
         {/* Mode selector */}
         <div className={groupClass}>

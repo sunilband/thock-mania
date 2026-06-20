@@ -16,6 +16,8 @@ export interface ResultStats {
   missedChars: number;
   mode: string;
   modeDetail: string;
+  /** false ⇒ themed-topic practice run, excluded from the leaderboard */
+  ranked: boolean;
   raw: number;
   wpm: number;
   wpmHistory: WpmSnapshot[];
@@ -27,14 +29,14 @@ export interface ResultStats {
  * input and keystroke timing against its own signed word list.
  */
 export interface TestSubmission {
+  /** ms offset (from test start) of each character + space keystroke, in order */
+  keystrokeTimes: number[];
   /** opaque signed challenge from startTest (binds the server's word list) */
   token: string;
-  /** committed per-word inputs, index-aligned with the target words */
-  wordInputs: string[];
   /** in-progress final word */
   typed: string;
   /** active word index */
   wordIndex: number;
-  /** ms offset (from test start) of each character + space keystroke, in order */
-  keystrokeTimes: number[];
+  /** committed per-word inputs, index-aligned with the target words */
+  wordInputs: string[];
 }
