@@ -23,6 +23,8 @@ export interface TestControlsProps {
   onWordOptionChange: (next: WordOption) => void;
   punctuation: boolean;
   quoteLength: QuoteLength;
+  /** themed topics ignore punctuation/numbers/difficulty — hide them */
+  showModifiers: boolean;
   timeOption: TimeOption;
   wordOption: WordOption;
 }

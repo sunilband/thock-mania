@@ -15,6 +15,11 @@ import {
   KEYBOARD_SIZE_OPTIONS,
 } from "@/lib/keyboard-size-options";
 import { THEME_OPTIONS } from "@/lib/theme-options";
+import {
+  DEFAULT_TOPIC,
+  isTopicId,
+  type TopicId,
+} from "@/lib/topic-options";
 
 export {
   FONT_OPTIONS,
@@ -23,6 +28,13 @@ export {
 } from "@/lib/font-options";
 export { KEYBOARD_SIZE_OPTIONS } from "@/lib/keyboard-size-options";
 export { THEME_OPTIONS } from "@/lib/theme-options";
+export {
+  DEFAULT_TOPIC,
+  TOPIC_OPTIONS,
+  type TopicId,
+} from "@/lib/topic-options";
+
+const TOPIC_STORAGE_KEY = "tc-topic";
 
 export type CaretStyle = "line" | "block" | "underline";
 
@@ -45,9 +57,11 @@ interface SettingsContextType {
   setShowKeyboard: (v: boolean) => void;
   setSoundEnabled: (v: boolean) => void;
   setSoundVolume: (v: number) => void;
+  setTopic: (t: TopicId) => void;
   showKeyboard: boolean;
   soundEnabled: boolean;
   soundVolume: number;
+  topic: TopicId;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
@@ -93,6 +107,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [faahMode, setFaahModeState] = useState(false);
   const [ghostMode, setGhostModeState] = useState(false);
   const [caretStyle, setCaretStyleState] = useState<CaretStyle>("line");
+  const [topic, setTopicState] = useState<TopicId>(DEFAULT_TOPIC);
   // One-time hydration from localStorage on mount
   useEffect(() => {
     const validThemes = new Set<string>(THEME_OPTIONS.map((t) => t.id));
@@ -106,6 +121,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const savedFaahMode = localStorage.getItem("tc-faah-mode");
     const savedGhostMode = localStorage.getItem("tc-ghost-mode");
     const savedCaretStyle = localStorage.getItem("tc-caret-style");
+    const savedTopic = localStorage.getItem(TOPIC_STORAGE_KEY);
 
     const initialAccent =
       rawAccent && validThemes.has(rawAccent)
@@ -151,6 +167,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       savedCaretStyle === "underline"
     ) {
       setCaretStyleState(savedCaretStyle);
+    }
+    if (isTopicId(savedTopic)) {
+      setTopicState(savedTopic);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -209,6 +228,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("tc-caret-style", s);
   };
 
+  const setTopic = (t: TopicId) => {
+    setTopicState(t);
+    localStorage.setItem(TOPIC_STORAGE_KEY, t);
+  };
+
   const fontCssFamily =
     FONT_OPTIONS.find((f) => f.id === font)?.cssFamily ?? "var(--font-mono)";
 
@@ -236,6 +260,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setGhostMode,
         caretStyle,
         setCaretStyle,
+        topic,
+        setTopic,
       }}
     >
       {children}

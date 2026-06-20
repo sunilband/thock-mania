@@ -1,8 +1,10 @@
 import "server-only";
+import { getQuote, type QuoteLength } from "@/lib/quotes";
+import { isRankedTopic } from "@/lib/topic-options";
+import { getTopicWords } from "@/lib/topics";
+import { type Difficulty, generateWordsFromPool } from "@/lib/words";
 import englishWords from "@/public/languages/english.json";
 import english1kWords from "@/public/languages/english_1k.json";
-import { getQuote, type QuoteLength } from "@/lib/quotes";
-import { type Difficulty, generateWordsFromPool } from "@/lib/words";
 
 /**
  * SERVER-SIDE word generation.
@@ -22,16 +24,18 @@ const POOLS: Record<"easy" | "hard", string[]> = {
 export type ServerTestMode = "time" | "words" | "quote" | "zen";
 
 export interface GenerateWordsOptions {
+    difficulty?: Difficulty;
     mode: ServerTestMode;
     modeDetail: string;
-    punctuation?: boolean;
     numbers?: boolean;
-    difficulty?: Difficulty;
+    punctuation?: boolean;
+    /** content source; non-default topics are unranked themed text */
+    topic?: string;
 }
 
 export interface GeneratedWords {
-    words: string[];
     author: string | null;
+    words: string[];
 }
 
 // Mirror the client's word-count choices in the typing hook.
@@ -48,6 +52,17 @@ function wordCountFor(mode: ServerTestMode): number {
 export function generateServerWords(
     opts: GenerateWordsOptions
 ): GeneratedWords {
+    // Themed topics override the word source entirely (and are always unranked).
+    // Length still follows the active mode/duration.
+    if (opts.topic && !isRankedTopic(opts.topic)) {
+        const count = wordCountFor(opts.mode);
+        const n =
+            opts.mode === "words"
+                ? Number(opts.modeDetail) || count
+                : count;
+        return { words: getTopicWords(opts.topic, n), author: null };
+    }
+
     if (opts.mode === "quote") {
         const length = (
             ["short", "medium", "long"].includes(opts.modeDetail)

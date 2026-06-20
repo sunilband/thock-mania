@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  CommandIcon,
-  GearSixIcon,
-  TrophyIcon,
-} from "@phosphor-icons/react";
+import { CommandIcon, GearSixIcon, TrophyIcon } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -23,7 +19,9 @@ import { ThockManiaLogo } from "@/components/layout/thock-mania-logo";
 import { VisitorCount } from "@/components/layout/visitor-count";
 import { useSettings } from "@/components/settings/settings-provider";
 import { DynamicFavicon } from "@/components/theme/dynamic-favicon";
+import { CapsLockIndicator } from "@/components/typing/caps-lock-indicator";
 import { KeyboardSizeDropdown } from "@/components/typing/keyboard-size-dropdown";
+import { TopicDropdown } from "@/components/typing/topic-dropdown";
 
 const SettingsPanel = dynamic(
   () =>
@@ -42,8 +40,8 @@ const HistoryPanel = dynamic(
 );
 
 interface AppChromeContextValue {
-  homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
   historyOpen: boolean;
+  homeLogoHandlerRef: React.MutableRefObject<(() => void) | null>;
   setHistoryOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTypingActive: (active: boolean) => void;
@@ -89,12 +87,16 @@ export function AppChrome({ children }: { children: ReactNode }) {
 
   // Track when panels should mount (once opened, stay mounted)
   const handleSettingsOpen = useCallback((open: boolean) => {
-    if (open) setSettingsLoaded(true);
+    if (open) {
+      setSettingsLoaded(true);
+    }
     setSettingsOpen(open);
   }, []);
 
   const handleHistoryOpen = useCallback((open: boolean) => {
-    if (open) setHistoryLoaded(true);
+    if (open) {
+      setHistoryLoaded(true);
+    }
     setHistoryOpen(open);
   }, []);
 
@@ -108,12 +110,19 @@ export function AppChrome({ children }: { children: ReactNode }) {
       setTypingActive,
       homeLogoHandlerRef,
     }),
-    [settingsOpen, historyOpen, typingActive, handleSettingsOpen, handleHistoryOpen]
+    [
+      settingsOpen,
+      historyOpen,
+      typingActive,
+      handleSettingsOpen,
+      handleHistoryOpen,
+    ]
   );
 
   return (
     <AppChromeContext.Provider value={value}>
       <DynamicFavicon />
+      <CapsLockIndicator />
       <div className="flex min-h-dvh w-full flex-col">
         <SiteHeader />
         {children}
@@ -129,8 +138,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
 }
 
 function SiteHeader() {
-  const { setSettingsOpen, typingActive, homeLogoHandlerRef } =
-    useAppChrome();
+  const { setSettingsOpen, typingActive, homeLogoHandlerRef } = useAppChrome();
   const { showKeyboard } = useSettings();
 
   const dimHeader = typingActive;
@@ -195,6 +203,11 @@ function SiteHeader() {
 
         {/* Right — Settings, GitHub, User */}
         <div className="flex items-center gap-2">
+          {/* Text topic / content source */}
+          <div className="hidden sm:block">
+            <TopicDropdown />
+          </div>
+
           {/* Keyboard layout size — only when the on-screen keyboard is shown */}
           {showKeyboard && (
             <div className="hidden lg:block">

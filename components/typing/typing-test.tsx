@@ -2,20 +2,32 @@
 
 import { ArrowsCounterClockwiseIcon, CursorIcon } from "@phosphor-icons/react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useSettings } from "@/components/settings/settings-provider";
 import { TestControls } from "@/components/typing/test-controls";
 import { WordItem } from "@/components/typing/word-item";
 import { useTypingTest } from "@/hooks/use-typing-test";
+import { isRankedTopic } from "@/lib/topic-options";
 import { cn } from "@/lib/utils";
 
 // Lazy-loaded — chunk download is triggered when typing starts
 const ResultsScreen = lazy(() =>
-  import("@/components/typing/results").then((mod) => ({ default: mod.ResultsScreen }))
+  import("@/components/typing/results").then((mod) => ({
+    default: mod.ResultsScreen,
+  }))
 );
 
 // Preload the results chunk (import() caches so this is idempotent)
-const preloadResults = () => { import("@/components/typing/results"); };
+const preloadResults = () => {
+  import("@/components/typing/results");
+};
 
 interface TypingTestProps {
   onFinished?: (finished: boolean) => void;
@@ -27,7 +39,7 @@ interface TypingTestProps {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: orchestrator component
 export function TypingTest(props: TypingTestProps) {
-  const { liveStats, faahMode, ghostMode, caretStyle } = useSettings();
+  const { liveStats, faahMode, ghostMode, caretStyle, topic } = useSettings();
   const faahAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const onWrongKey = useCallback(() => {
@@ -88,7 +100,7 @@ export function TypingTest(props: TypingTestProps) {
     onNumbersToggle,
     onDifficultyToggle,
     onRestart,
-  } = useTypingTest({ ...props, onWrongKey });
+  } = useTypingTest({ ...props, onWrongKey, topic });
 
   // ── Debug overlay (opt-in via ?debug=true) ───────────────────────────────
   // Shows the raw InputEvent stream (inputType/data/value) + derived state.
@@ -122,7 +134,9 @@ export function TypingTest(props: TypingTestProps) {
 
   // Preload results chunk when user starts typing
   useEffect(() => {
-    if (started) preloadResults();
+    if (started) {
+      preloadResults();
+    }
   }, [started]);
 
   if (showResults) {
@@ -196,6 +210,7 @@ export function TypingTest(props: TypingTestProps) {
         onWordOptionChange={onWordOptionChange}
         punctuation={punctuation}
         quoteLength={quoteLength}
+        showModifiers={isRankedTopic(topic)}
         timeOption={timeOption}
         wordOption={wordOption}
       />
@@ -297,7 +312,9 @@ export function TypingTest(props: TypingTestProps) {
               logDbg("compStart");
               handleCompositionStart();
             }}
-            onCompositionUpdate={(e) => logDbg(`compUpd d=${JSON.stringify(e.data)}`)}
+            onCompositionUpdate={(e) =>
+              logDbg(`compUpd d=${JSON.stringify(e.data)}`)
+            }
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
             ref={inputRef}
@@ -429,10 +446,37 @@ export function TypingTest(props: TypingTestProps) {
 // Lightweight placeholder shown while the (server-signed) word list loads, so
 // the first paint isn't a blank gap. Deterministic widths to avoid layout jitter.
 const SKELETON_WIDTHS = [
-  "3.5rem", "5rem", "2.5rem", "4.25rem", "3rem", "5.5rem", "2.75rem", "4rem",
-  "3.25rem", "4.75rem", "2.5rem", "3.75rem", "5.25rem", "3rem", "4.5rem",
-  "2.75rem", "5rem", "3.5rem", "4rem", "2.5rem", "4.75rem", "3.25rem", "2.75rem", "4rem",
-  "3.25rem", "4.75rem", "2.5rem", "3.75rem", "5.25rem", "3rem", "4.5rem",
+  "3.5rem",
+  "5rem",
+  "2.5rem",
+  "4.25rem",
+  "3rem",
+  "5.5rem",
+  "2.75rem",
+  "4rem",
+  "3.25rem",
+  "4.75rem",
+  "2.5rem",
+  "3.75rem",
+  "5.25rem",
+  "3rem",
+  "4.5rem",
+  "2.75rem",
+  "5rem",
+  "3.5rem",
+  "4rem",
+  "2.5rem",
+  "4.75rem",
+  "3.25rem",
+  "2.75rem",
+  "4rem",
+  "3.25rem",
+  "4.75rem",
+  "2.5rem",
+  "3.75rem",
+  "5.25rem",
+  "3rem",
+  "4.5rem",
 ];
 
 function WordsSkeleton() {

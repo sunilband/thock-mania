@@ -36,18 +36,20 @@ function getSecret(): string {
 }
 
 export interface ChallengePayload {
+    /** time-mode duration in seconds (0 for non-time modes) */
+    durationSeconds: number;
+    /** issued-at epoch ms */
+    iat: number;
+    mode: string;
+    modeDetail: string;
+    /** false ⇒ practice/themed-topic run: server refuses to persist it */
+    ranked: boolean;
     /** unique id for this challenge (anti-replay aid) */
     sid: string;
     /** resolved profile id the challenge was issued to */
     uid: string;
-    mode: string;
-    modeDetail: string;
-    /** time-mode duration in seconds (0 for non-time modes) */
-    durationSeconds: number;
     /** authoritative target words the run will be graded against */
     words: string[];
-    /** issued-at epoch ms */
-    iat: number;
 }
 
 function sign(data: string): string {

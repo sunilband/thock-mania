@@ -70,6 +70,8 @@
 | Area | What you get |
 |------|----------------|
 | **Test modes** | Time (15s–120s), word count, quotes (length presets), zen |
+| **Topic selector** | Pick a text category from the header — Random words (default, leaderboard-eligible), or practice with themed content: Famous quotes, Songs & music, Pop culture, History, Science, Technology, Nature, Sports. A "Random topic" option surprises you each test |
+| **Caps Lock indicator** | A fixed bottom-left badge warns you when Caps Lock is active |
 | **Mechanical key sounds** | Realistic per-key audio feedback via Web Audio; multiple keyboard themes |
 | **Virtual keyboard** | Interactive on-screen keyboard that highlights keys as you type, with a header dropdown to switch form factors — 100% (full-size), 96%/1800, 80% TKL, 75%, 65%, 60%, and 40% |
 | **Mobile typing** | Tap to focus and type with the device's soft keyboard — input is captured reliably across iOS and Android (Gboard), including autocorrect and swipe |
@@ -82,9 +84,9 @@
 | **Keyboard themes** | 7 color schemes — Classic, Mint, Royal, Dolch, Sand, Scarlet, Carbon — each tints the entire UI |
 | **Typing fonts** | 9 fonts — Geist Mono, JetBrains Mono, Fira Code, IBM Plex Mono, Source Code Pro, Inter Tight, Space Grotesk, Nunito, Atkinson Hyperlegible |
 | **Caret styles** | Line, block, or underline caret |
-| **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, keyboard layout size, sound volume, live WPM, ghost mode |
+| **Settings** | Theme (light/dark/system), accent color, font picker, caret style, show keyboard, keyboard layout size, sound volume, live WPM, ghost mode, topic |
 | **Haptics** | Optional vibration on supported hardware |
-| **Anti-cheat** | Scores are computed and verified **server-side** — the leaderboard only accepts genuine runs (see [Anti-Cheat](#-anti-cheat)) |
+| **Anti-cheat** | Scores are computed and verified **server-side** — the leaderboard only accepts genuine, ranked runs (see [Anti-Cheat](#-anti-cheat)). Themed-topic practice runs are signed as unranked and never persisted |
 
 Settings and history persist in `localStorage` — no account required. Sign in with Google to unlock cloud history and the leaderboard.
 
