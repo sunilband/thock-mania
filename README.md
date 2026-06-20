@@ -70,7 +70,7 @@
 | Area | What you get |
 |------|----------------|
 | **Test modes** | Time (15s–120s), word count, quotes (length presets), zen |
-| **Topic selector** | Pick a text category from the header — Random words (default, leaderboard-eligible), or practice with themed content: Famous quotes, Songs & music, Pop culture, History, Science, Technology, Nature, Sports. A "Random topic" option surprises you each test |
+| **Topic selector** | Pick a text category from the header — Random words (default, leaderboard-eligible), or practice with themed content: Famous quotes, Songs & music, Pop culture, History, Science, Technology, Nature, Sports, Literature, Philosophy. A "Random topic" option surprises you each test |
 | **Caps Lock indicator** | A fixed bottom-left badge warns you when Caps Lock is active |
 | **Mechanical key sounds** | Realistic per-key audio feedback via Web Audio; multiple keyboard themes |
 | **Virtual keyboard** | Interactive on-screen keyboard that highlights keys as you type, with a header dropdown to switch form factors — 100% (full-size), 96%/1800, 80% TKL, 75%, 65%, 60%, and 40% |

@@ -16,7 +16,9 @@ export type TopicId =
     | "science"
     | "technology"
     | "nature"
-    | "sports";
+    | "sports"
+    | "literature"
+    | "philosophy";
 
 export interface TopicOption {
     description: string;
@@ -41,6 +43,16 @@ export const TOPIC_OPTIONS: readonly TopicOption[] = [
         id: "famous_quotes",
         label: "Famous quotes",
         description: "Memorable lines from across history.",
+    },
+    {
+        id: "literature",
+        label: "Literature",
+        description: "Books, authors, and storytelling.",
+    },
+    {
+        id: "philosophy",
+        label: "Philosophy",
+        description: "Big questions and deep thinkers.",
     },
     {
         id: "songs",

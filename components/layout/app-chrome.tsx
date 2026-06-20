@@ -204,9 +204,7 @@ function SiteHeader() {
         {/* Right — Settings, GitHub, User */}
         <div className="flex items-center gap-2">
           {/* Text topic / content source */}
-          <div className="hidden sm:block">
-            <TopicDropdown />
-          </div>
+          <TopicDropdown />
 
           {/* Keyboard layout size — only when the on-screen keyboard is shown */}
           {showKeyboard && (

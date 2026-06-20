@@ -95,7 +95,7 @@ A **topic** is the content source for the typed text, chosen from the header **T
 Options (`lib/topic-options.ts`, `TOPIC_OPTIONS`):
 - `random_words` (**default, the only ranked/leaderboard-eligible topic**)
 - `random_topics` (picks a random themed topic each test)
-- `famous_quotes`, `songs`, `pop_culture`, `history`, `science`, `technology`, `nature`, `sports`
+- `famous_quotes`, `songs`, `pop_culture`, `history`, `science`, `technology`, `nature`, `sports`, `literature`, `philosophy`
 
 ### Ranked vs unranked
 - **Only `random_words` runs count on the leaderboard.** Every other topic is a practice run. `isRankedTopic(topic)` (`lib/topic-options.ts`) is the single source of truth (`true` only for `random_words`/undefined).
@@ -299,7 +299,7 @@ All persisted in localStorage with `tc-` prefix:
 | `tc-punctuation` | true/false |
 | `tc-numbers` | true/false |
 | `tc-difficulty` | easy, hard |
-| `tc-topic` | random_words (default), random_topics, famous_quotes, songs, pop_culture, history, science, technology, nature, sports |
+| `tc-topic` | random_words (default), random_topics, famous_quotes, songs, pop_culture, history, science, technology, nature, sports, literature, philosophy |
 
 > Note: `tc-topic` is owned by **SettingsProvider** (so the header dropdown can read/set it), unlike the other test-mode options (`tc-test-mode`, `tc-time-option`, etc.) which live in the typing hook + `lib/test-storage.ts`. The hook receives `topic` as a prop from settings and resets the test when it changes.
 

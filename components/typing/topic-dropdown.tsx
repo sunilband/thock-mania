@@ -71,55 +71,57 @@ export function TopicDropdown() {
                 </PopoverTrigger>
                 <PopoverContent
                     align="end"
-                    className="w-72 gap-0.5 p-1.5"
+                    className="flex w-72 flex-col gap-0 p-1.5"
                     side="bottom"
                     sideOffset={8}
                 >
-                    {TOPIC_OPTIONS.map((opt) => {
-                        const isActive = topic === opt.id;
-                        return (
-                            <button
-                                className={cn(
-                                    "group/topic flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-150",
-                                    isActive
-                                        ? "bg-foreground/[0.06]"
-                                        : "hover:bg-foreground/[0.03]"
-                                )}
-                                key={opt.id}
-                                onClick={() => handleSelect(opt.id)}
-                                type="button"
-                            >
-                                <span className="flex flex-col gap-0.5">
-                                    <span
-                                        className={cn(
-                                            "flex items-center gap-1.5 text-xs transition-colors duration-150",
-                                            isActive
-                                                ? "font-medium text-foreground"
-                                                : "text-muted-foreground group-hover/topic:text-foreground"
-                                        )}
-                                    >
-                                        {opt.label}
-                                        {opt.id === "random_words" && (
-                                            <span className="rounded-full bg-primary/10 px-1.5 py-px font-semibold text-[9px] text-primary leading-tight">
-                                                Ranked
-                                            </span>
-                                        )}
+                    <div className="max-h-64 overflow-y-auto overscroll-contain">
+                        {TOPIC_OPTIONS.map((opt) => {
+                            const isActive = topic === opt.id;
+                            return (
+                                <button
+                                    className={cn(
+                                        "group/topic flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-150",
+                                        isActive
+                                            ? "bg-foreground/[0.06]"
+                                            : "hover:bg-foreground/[0.03]"
+                                    )}
+                                    key={opt.id}
+                                    onClick={() => handleSelect(opt.id)}
+                                    type="button"
+                                >
+                                    <span className="flex flex-col gap-0.5">
+                                        <span
+                                            className={cn(
+                                                "flex items-center gap-1.5 text-xs transition-colors duration-150",
+                                                isActive
+                                                    ? "font-medium text-foreground"
+                                                    : "text-muted-foreground group-hover/topic:text-foreground"
+                                            )}
+                                        >
+                                            {opt.label}
+                                            {opt.id === "random_words" && (
+                                                <span className="rounded-full bg-primary/10 px-1.5 py-px font-semibold text-[9px] text-primary leading-tight">
+                                                    Ranked
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground/60 leading-tight">
+                                            {opt.description}
+                                        </span>
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground/60 leading-tight">
-                                        {opt.description}
-                                    </span>
-                                </span>
-                                {isActive && (
-                                    <CheckIcon
-                                        className="mt-0.5 shrink-0 text-primary"
-                                        size={14}
-                                        weight="duotone"
-                                    />
-                                )}
-                            </button>
-                        );
-                    })}
-                    <p className="mt-1 border-foreground/10 border-t px-3 pt-2 text-[10px] text-muted-foreground/60 leading-tight">
+                                    {isActive && (
+                                        <CheckIcon
+                                            className="mt-0.5 shrink-0 text-primary"
+                                            size={14}
+                                            weight="duotone"
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="mt-1 shrink-0 border-foreground/10 border-t px-3 pt-2 text-[10px] text-muted-foreground/60 leading-tight">
                         Only <span className="text-foreground/80">Random words</span> counts
                         toward the leaderboard.
                     </p>
